@@ -1,0 +1,296 @@
+using System;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Threading;
+using LenovoLegionToolkit.Lib.AI;
+using LenovoLegionToolkit.Lib.Controllers;
+using LenovoLegionToolkit.Lib.Controllers.GodMode;
+using LenovoLegionToolkit.Lib.Utils;
+using LenovoLegionToolkit.WPF.Utils;
+
+namespace LenovoLegionToolkit.WPF.Controls.Dashboard;
+
+public partial class Gen9AIThermalControl : UserControl
+{
+    private readonly Gen9ECController _gen9ECController;
+    private readonly ThermalOptimizer _thermalOptimizer;
+    private readonly GodModeControllerV3? _godModeControllerV3;
+    private readonly DispatcherTimer _updateTimer;
+    private readonly ObservableCollection<string> _recommendations = new();
+
+    private bool _isOptimizing;
+    private WorkloadType _currentWorkloadType = WorkloadType.Balanced;
+
+    public Gen9AIThermalControl()
+    {
+        InitializeComponent();
+
+        // Subscribe to Unloaded event
+        Unloaded += UserControl_Unloaded;
+
+        try
+        {
+            _gen9ECController = IoCContainer.Resolve<Gen9ECController>();
+            _thermalOptimizer = new ThermalOptimizer(_gen9ECController);
+            _godModeControllerV3 = IoCContainer.Resolve<GodModeControllerV3>();
+        }
+        catch (Exception ex)
+        {
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Failed to initialize Gen 9 AI Thermal Control: {ex.Message}");
+
+            // Disable controls if Gen 9 components aren't available
+            IsEnabled = false;
+            StatusText.Text = "Gen 9 features not available";
+            return;
+        }
+
+        // Initialize UI
+        RecommendationsPanel.ItemsSource = _recommendations;
+        WorkloadComboBox.SelectedIndex = 0; // Balanced
+
+        // Setup update timer
+        _updateTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(2)
+        };
+        _updateTimer.Tick += UpdateTimer_Tick;
+        _updateTimer.Start();
+
+        // Initial update
+        _ = UpdateStatusAsync();
+    }
+
+    private async void UpdateTimer_Tick(object? sender, EventArgs e)
+    {
+        if (_isOptimizing) return;
+
+        await UpdateStatusAsync();
+    }
+
+    private async Task UpdateStatusAsync()
+    {
+        try
+        {
+            // Read sensor data
+            var sensorData = await _gen9ECController.ReadSensorDataAsync();
+
+            // Update temperature displays
+            Dispatcher.Invoke(() =>
+            {
+                CpuTempText.Text = $"{sensorData.CpuPackageTemp}°C";
+                GpuTempText.Text = $"{sensorData.GpuTemp}°C";
+                GpuHotspotText.Text = $"{sensorData.GpuHotspot}°C";
+                VrmTempText.Text = $"{sensorData.VrmTemp}°C";
+                SsdTempText.Text = $"{sensorData.SsdTemp}°C";
+
+                Fan1SpeedText.Text = $"{sensorData.Fan1Speed} RPM";
+                Fan2SpeedText.Text = $"{sensorData.Fan2Speed} RPM";
+
+                // Update status based on temperatures
+                UpdateThermalStatus(sensorData);
+            });
+        }
+        catch (Exception ex)
+        {
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Failed to update thermal status: {ex.Message}");
+
+            Dispatcher.Invoke(() =>
+            {
+                StatusText.Text = "Error reading sensors";
+                StatusIndicator.Fill = new SolidColorBrush(Colors.Red);
+            });
+        }
+    }
+
+    private void UpdateThermalStatus(Gen9SensorData sensorData)
+    {
+        // Calculate overall thermal risk
+        var maxTemp = Math.Max(Math.Max(sensorData.CpuPackageTemp, sensorData.GpuTemp), sensorData.GpuHotspot);
+        var thermalRisk = CalculateThermalRisk(maxTemp);
+
+        // Update throttle risk bar
+        ThrottleRiskBar.Value = thermalRisk * 100;
+
+        string riskText;
+        Color statusColor;
+
+        if (thermalRisk < 0.3)
+        {
+            riskText = "Low Risk";
+            statusColor = Colors.Green;
+            StatusText.Text = "Optimal thermal performance";
+        }
+        else if (thermalRisk < 0.7)
+        {
+            riskText = "Medium Risk";
+            statusColor = Colors.Orange;
+            StatusText.Text = "Monitoring thermal levels";
+        }
+        else
+        {
+            riskText = "High Risk";
+            statusColor = Colors.Red;
+            StatusText.Text = "Thermal throttling risk detected";
+        }
+
+        ThrottleRiskText.Text = $"{thermalRisk:P0} - {riskText}";
+        StatusIndicator.Fill = new SolidColorBrush(statusColor);
+
+        // Update progress bar color based on risk
+        if (thermalRisk < 0.3)
+            ThrottleRiskBar.Foreground = new SolidColorBrush(Colors.Green);
+        else if (thermalRisk < 0.7)
+            ThrottleRiskBar.Foreground = new SolidColorBrush(Colors.Orange);
+        else
+            ThrottleRiskBar.Foreground = new SolidColorBrush(Colors.Red);
+    }
+
+    private double CalculateThermalRisk(byte maxTemp)
+    {
+        // Simple thermal risk calculation
+        if (maxTemp >= 95) return 1.0;
+        if (maxTemp >= 85) return 0.5 + (maxTemp - 85) / 20.0;
+        if (maxTemp >= 75) return (maxTemp - 75) / 20.0;
+        return 0.0;
+    }
+
+    private async void OptimizeButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isOptimizing) return;
+
+        _isOptimizing = true;
+        OptimizeButton.IsEnabled = false;
+        StatusText.Text = "Running AI optimization...";
+        StatusIndicator.Fill = new SolidColorBrush(Colors.Blue);
+
+        try
+        {
+            var result = await _thermalOptimizer.OptimizeThermalPerformanceAsync(_currentWorkloadType);
+
+            if (result.Success)
+            {
+                // Update recommendations
+                _recommendations.Clear();
+                foreach (var recommendation in result.Recommendations)
+                {
+                    _recommendations.Add(recommendation);
+                }
+
+                // Show success message
+                await SnackbarHelper.ShowAsync(Resource.Optimization_Complete, TimeSpan.FromSeconds(3));
+
+                StatusText.Text = "Optimization completed successfully";
+                StatusIndicator.Fill = new SolidColorBrush(Colors.Green);
+            }
+            else
+            {
+                StatusText.Text = $"Optimization failed: {result.ErrorMessage}";
+                StatusIndicator.Fill = new SolidColorBrush(Colors.Red);
+                await SnackbarHelper.ShowAsync($"Optimization failed: {result.ErrorMessage}", TimeSpan.FromSeconds(5));
+            }
+        }
+        catch (Exception ex)
+        {
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Optimization failed: {ex.Message}");
+
+            StatusText.Text = "Optimization failed";
+            StatusIndicator.Fill = new SolidColorBrush(Colors.Red);
+            await SnackbarHelper.ShowAsync($"Optimization failed: {ex.Message}", TimeSpan.FromSeconds(5));
+        }
+        finally
+        {
+            _isOptimizing = false;
+            OptimizeButton.IsEnabled = true;
+        }
+    }
+
+    private async void ApplyFixesButton_Click(object sender, RoutedEventArgs e)
+    {
+        ApplyFixesButton.IsEnabled = false;
+        StatusText.Text = "Applying Gen 9 hardware fixes...";
+
+        try
+        {
+            var success = await _gen9ECController.ApplyAllGen9FixesAsync();
+
+            if (success)
+            {
+                await SnackbarHelper.ShowAsync("Gen 9 hardware fixes applied successfully", TimeSpan.FromSeconds(3));
+                StatusText.Text = "Hardware fixes applied";
+
+                // Update recommendations
+                _recommendations.Clear();
+                _recommendations.Add("Thermal throttling threshold increased to 105°C");
+                _recommendations.Add("Optimized fan curve for dual vapor chamber system");
+                _recommendations.Add("Enhanced P-core/E-core scheduling configured");
+                _recommendations.Add("GPU memory clock optimization enabled");
+            }
+            else
+            {
+                await SnackbarHelper.ShowAsync("Failed to apply some hardware fixes", TimeSpan.FromSeconds(5));
+                StatusText.Text = "Some fixes failed to apply";
+            }
+        }
+        catch (Exception ex)
+        {
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Failed to apply fixes: {ex.Message}");
+
+            await SnackbarHelper.ShowAsync($"Failed to apply fixes: {ex.Message}", TimeSpan.FromSeconds(5));
+            StatusText.Text = "Failed to apply fixes";
+        }
+        finally
+        {
+            ApplyFixesButton.IsEnabled = true;
+        }
+    }
+
+    private void WorkloadComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (WorkloadComboBox.SelectedItem is not ComboBoxItem selectedItem) return;
+
+        var workloadTag = selectedItem.Tag?.ToString();
+        if (Enum.TryParse<WorkloadType>(workloadTag, out var workloadType))
+        {
+            _currentWorkloadType = workloadType;
+
+            // Update description
+            WorkloadDescription.Text = workloadType switch
+            {
+                WorkloadType.Gaming => "Optimized for gaming with maximum GPU performance and aggressive cooling",
+                WorkloadType.Productivity => "Balanced performance with quiet operation for office work",
+                WorkloadType.AIWorkload => "Maximum GPU power for AI/ML workloads with prioritized GPU cooling",
+                WorkloadType.Balanced => "Automatically adjusts thermal settings based on current activity",
+                _ => "Unknown workload type"
+            };
+
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Workload type changed to: {workloadType}");
+        }
+    }
+
+    private async void RefreshButton_Click(object sender, RoutedEventArgs e)
+    {
+        RefreshButton.IsEnabled = false;
+        try
+        {
+            await UpdateStatusAsync();
+        }
+        finally
+        {
+            RefreshButton.IsEnabled = true;
+        }
+    }
+
+    private void UserControl_Unloaded(object sender, RoutedEventArgs e)
+    {
+        _updateTimer?.Stop();
+    }
+}

@@ -357,6 +357,14 @@ ASALocalRun/
 # Local History for Visual Studio
 .localhistory/
 
+# Legion Toolkit specific build directories
+build/
+build_installer/
+
+# Backup files
+*.bak
+*.backup
+
 # BeatPulse healthcheck temp database
 healthchecksdb
 

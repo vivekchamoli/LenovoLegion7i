@@ -54,6 +54,14 @@ del /q *.tmp 2>nul
 del /q *.cache 2>nul
 del /q *.bak 2>nul
 del /q *.old 2>nul
+del /q *.log 2>nul
+
+echo Cleaning NuGet package caches...
+rmdir /s /q packages 2>nul
+del /q *.lock.json 2>nul
+
+echo Cleaning test results...
+rmdir /s /q TestResults 2>nul
 
 echo.
 echo ==========================================
@@ -61,15 +69,34 @@ echo CLEANUP COMPLETE
 echo ==========================================
 echo.
 echo All build artifacts and temporary files have been removed.
-echo All 7 modules cleaned:
-echo   - LenovoLegionToolkit.CLI
-echo   - LenovoLegionToolkit.CLI.Lib
-echo   - LenovoLegionToolkit.Lib (Elite Optimizations)
-echo   - LenovoLegionToolkit.Lib.Automation
-echo   - LenovoLegionToolkit.Lib.Macro
-echo   - LenovoLegionToolkit.WPF
-echo   - LenovoLegionToolkit.SpectrumTester
 echo.
-echo Ready for fresh build. Run: build_gen9_enhanced.bat
+echo Modules Cleaned (7):
+echo   1. LenovoLegionToolkit.CLI
+echo   2. LenovoLegionToolkit.CLI.Lib
+echo   3. LenovoLegionToolkit.Lib (Elite Optimizations Phase 1-4)
+echo   4. LenovoLegionToolkit.Lib.Automation
+echo   5. LenovoLegionToolkit.Lib.Macro
+echo   6. LenovoLegionToolkit.WPF (Dashboard ^& Settings UI)
+echo   7. LenovoLegionToolkit.SpectrumTester
+echo.
+echo Directories Cleaned:
+echo   - bin/ obj/ (all modules)
+echo   - build/ build_installer/
+echo   - publish/ dist/
+echo   - .vs/ _ReSharper.Caches/
+echo   - packages/ TestResults/
+echo.
+echo Files Cleaned:
+echo   - build.log
+echo   - *.tmp *.cache *.bak *.old *.log
+echo   - *.lock.json
+echo.
+echo Elite Optimizations v1.0.0 - Clean Build Environment Ready
+echo Phase 1-3: Production Features | Phase 4: Beta Features
+echo.
+echo Next Steps:
+echo   1. Run: build_gen9_enhanced.bat (Build complete application)
+echo   2. Or: dotnet build (Quick build)
+echo   3. Or: dotnet restore (Restore packages only)
 echo.
 pause

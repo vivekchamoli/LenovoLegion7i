@@ -17,10 +17,9 @@ jobs:
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 8.0.x
-    - name: Restore
-      run: dotnet restore
     - name: Build
-      run: .\make.bat ${{ github.ref_name }}
+      run: .\build_gen9_enhanced.bat
+      shell: cmd
     - name: Release
       uses: softprops/action-gh-release@v0.1.13
       with:

@@ -18,10 +18,9 @@ jobs:
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 8.0.x
-    - name: Restore
-      run: dotnet restore
     - name: Build
-      run: .\make.bat
+      run: .\build_gen9_enhanced.bat
+      shell: cmd
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:

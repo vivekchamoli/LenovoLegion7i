@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
 using LenovoLegionToolkit.Lib;
@@ -23,6 +24,8 @@ public partial class EliteOptimizationsControl
 
     private CancellationTokenSource? _cts;
     private Task? _refreshTask;
+    private bool _manualFanControlEnabled;
+    private bool _isUpdatingSliders;
 
     public EliteOptimizationsControl()
     {
@@ -39,6 +42,11 @@ public partial class EliteOptimizationsControl
         {
             // Controllers not available
         }
+
+        // Initialize UI state
+        _aiAdaptiveFanToggle.IsChecked = FeatureFlags.UseAdaptiveFanCurves;
+        _manualFanControlEnabled = !FeatureFlags.UseAdaptiveFanCurves;
+        UpdateManualControlsState();
 
         IsVisibleChanged += EliteOptimizationsControl_IsVisibleChanged;
     }
@@ -59,29 +67,47 @@ public partial class EliteOptimizationsControl
     {
         try
         {
-            // Update overall stats
-            var phase4ActiveCount = 0;
-            if (FeatureFlags.UseAdaptiveFanCurves) phase4ActiveCount++;
-            if (FeatureFlags.UseMLAIController) phase4ActiveCount++;
-            if (FeatureFlags.UseReactiveSensors) phase4ActiveCount++;
-            if (FeatureFlags.UseObjectPooling) phase4ActiveCount++;
+            // Update real-time sensor data
+            if (_sensorsController != null)
+            {
+                var sensorsData = await _sensorsController.GetDataAsync();
 
-            var totalActiveFeatures = 5 + phase4ActiveCount; // 5 Phase 1-3 + Phase 4 count
-            _activeFeatures.Text = $"{totalActiveFeatures}/9";
+                // Update real-time metrics
+                _cpuTemp.Text = $"{sensorsData.CPU.Temperature}°C";
+                _cpuFanSpeed.Text = $"{sensorsData.CPU.FanSpeed} RPM";
+                _gpuFanSpeed.Text = $"{sensorsData.GPU.FanSpeed} RPM";
 
-            // Update Phase 4 feature statuses
+                // Color code CPU temperature
+                if (sensorsData.CPU.Temperature > 80)
+                    _cpuTemp.Foreground = new SolidColorBrush(Color.FromRgb(239, 68, 68)); // Red
+                else if (sensorsData.CPU.Temperature > 70)
+                    _cpuTemp.Foreground = new SolidColorBrush(Color.FromRgb(251, 191, 36)); // Yellow
+                else
+                    _cpuTemp.Foreground = new SolidColorBrush(Color.FromRgb(16, 185, 129)); // Green
+
+                // Update sliders to reflect current fan speeds (only if not manually controlling)
+                if (!_manualFanControlEnabled && !_isUpdatingSliders)
+                {
+                    _isUpdatingSliders = true;
+                    _cpuFanSlider.Value = Math.Min(100, (sensorsData.CPU.FanSpeed / 50)); // Approximate percentage
+                    _gpuFanSlider.Value = Math.Min(100, (sensorsData.GPU.FanSpeed / 50)); // Approximate percentage
+                    _isUpdatingSliders = false;
+                }
+            }
+
+            // Update feature statuses
             UpdateFeatureStatus(
-                _adaptiveFanIcon,
-                _adaptiveFanStatus,
-                FeatureFlags.UseAdaptiveFanCurves,
+                _mlAiIcon,
+                _mlAiStatus,
+                FeatureFlags.UseMLAIController,
                 "Active ✓",
                 "Disabled"
             );
 
             UpdateFeatureStatus(
-                _mlAiIcon,
-                _mlAiStatus,
-                FeatureFlags.UseMLAIController,
+                _adaptiveFanIcon,
+                _adaptiveFanStatus,
+                FeatureFlags.UseAdaptiveFanCurves,
                 "Active ✓",
                 "Disabled"
             );
@@ -125,13 +151,13 @@ public partial class EliteOptimizationsControl
         catch (Exception ex)
         {
             if (Log.Instance.IsTraceEnabled)
-                Log.Instance.Trace($"Failed to refresh Elite Optimizations status", ex);
+                Log.Instance.Trace($"Failed to refresh AI/ML Performance System status", ex);
         }
     }
 
     private void UpdateFeatureStatus(
         SymbolIcon icon,
-        System.Windows.Controls.TextBlock statusText,
+        TextBlock statusText,
         bool isEnabled,
         string enabledText,
         string disabledText)
@@ -181,7 +207,7 @@ public partial class EliteOptimizationsControl
 
             if (suggestion.ShouldSwitch)
             {
-                _aiSuggestionInfoBar.Title = "🧠 AI Power Mode Suggestion";
+                _aiSuggestionInfoBar.Title = "AI Power Mode Suggestion";
                 _aiSuggestionInfoBar.Message = $"{suggestion.Reason}\nRecommended: {suggestion.RecommendedMode}";
                 _aiSuggestionInfoBar.Severity = InfoBarSeverity.Informational;
                 _aiSuggestionInfoBar.IsOpen = true;
@@ -224,14 +250,14 @@ public partial class EliteOptimizationsControl
 
             if (fanSuggestion.ShouldAdjust)
             {
-                _adaptiveFanInfoBar.Title = "🌊 Adaptive Fan Curve Suggestion";
+                _adaptiveFanInfoBar.Title = "Adaptive Fan Learning Active";
                 _adaptiveFanInfoBar.Message = fanSuggestion.Reason;
                 _adaptiveFanInfoBar.Severity = InfoBarSeverity.Success;
                 _adaptiveFanInfoBar.IsOpen = true;
             }
             else
             {
-                _adaptiveFanInfoBar.Title = "🌊 Adaptive Fan Curves Active";
+                _adaptiveFanInfoBar.Title = "Adaptive Fan Curves Active";
                 _adaptiveFanInfoBar.Message = $"Current: {cpuTemp}°C @ {cpuFanSpeed} RPM - Learning thermal patterns...";
                 _adaptiveFanInfoBar.Severity = InfoBarSeverity.Success;
                 _adaptiveFanInfoBar.IsOpen = true;
@@ -240,6 +266,69 @@ public partial class EliteOptimizationsControl
         catch
         {
             _adaptiveFanInfoBar.IsOpen = false;
+        }
+    }
+
+    private void AiAdaptiveFanToggle_Checked(object sender, RoutedEventArgs e)
+    {
+        _manualFanControlEnabled = false;
+        UpdateManualControlsState();
+
+        // Enable adaptive fan curves feature flag
+        Environment.SetEnvironmentVariable("LLT_FEATURE_ADAPTIVEFANCURVES", "true", EnvironmentVariableTarget.User);
+
+        _adaptiveFanInfoBar.Title = "AI/ML Adaptive Fan Control Enabled";
+        _adaptiveFanInfoBar.Message = "Fan curves will be automatically optimized based on thermal patterns.";
+        _adaptiveFanInfoBar.Severity = InfoBarSeverity.Success;
+        _adaptiveFanInfoBar.IsOpen = true;
+    }
+
+    private void AiAdaptiveFanToggle_Unchecked(object sender, RoutedEventArgs e)
+    {
+        _manualFanControlEnabled = true;
+        UpdateManualControlsState();
+
+        // Disable adaptive fan curves feature flag
+        Environment.SetEnvironmentVariable("LLT_FEATURE_ADAPTIVEFANCURVES", "false", EnvironmentVariableTarget.User);
+
+        _adaptiveFanInfoBar.IsOpen = false;
+    }
+
+    private void UpdateManualControlsState()
+    {
+        _manualFanControls.IsEnabled = _manualFanControlEnabled;
+        _manualFanControls.Opacity = _manualFanControlEnabled ? 1.0 : 0.5;
+    }
+
+    private void CpuFanSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_cpuFanSliderValue == null || _isUpdatingSliders) return;
+
+        var value = (int)e.NewValue;
+        _cpuFanSliderValue.Text = $"{value}%";
+
+        if (_manualFanControlEnabled)
+        {
+            // TODO: Apply manual fan speed control via fan controller
+            // This would require access to the actual fan control API
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Manual CPU fan control: {value}%");
+        }
+    }
+
+    private void GpuFanSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_gpuFanSliderValue == null || _isUpdatingSliders) return;
+
+        var value = (int)e.NewValue;
+        _gpuFanSliderValue.Text = $"{value}%";
+
+        if (_manualFanControlEnabled)
+        {
+            // TODO: Apply manual fan speed control via fan controller
+            // This would require access to the actual fan control API
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Manual GPU fan control: {value}%");
         }
     }
 
@@ -257,7 +346,7 @@ public partial class EliteOptimizationsControl
                 try
                 {
                     await Dispatcher.InvokeAsync(async () => await RefreshAsync(), DispatcherPriority.Background);
-                    await Task.Delay(TimeSpan.FromSeconds(5), token);
+                    await Task.Delay(TimeSpan.FromSeconds(2), token); // Faster refresh for real-time data
                 }
                 catch (OperationCanceledException)
                 {
@@ -266,9 +355,9 @@ public partial class EliteOptimizationsControl
                 catch (Exception ex)
                 {
                     if (Log.Instance.IsTraceEnabled)
-                        Log.Instance.Trace($"Elite Optimizations status refresh error", ex);
+                        Log.Instance.Trace($"AI/ML Performance System refresh error", ex);
 
-                    await Task.Delay(TimeSpan.FromSeconds(10), token);
+                    await Task.Delay(TimeSpan.FromSeconds(5), token);
                 }
             }
         }, token);

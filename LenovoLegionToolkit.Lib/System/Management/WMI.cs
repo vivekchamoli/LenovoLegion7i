@@ -10,13 +10,26 @@ namespace LenovoLegionToolkit.Lib.System.Management;
 
 public static partial class WMI
 {
+    private static readonly WMICache _cache = new();
+
     private static async Task<bool> ExistsAsync(string scope, FormattableString query)
     {
         try
         {
             var queryFormatted = query.ToString(WMIPropertyValueFormatter.Instance);
-            using var mos = new ManagementObjectSearcher(scope, queryFormatted);
-            var managementObjects = await mos.GetAsync().ConfigureAwait(false);
+
+            // Use WMI cache if enabled via feature flag
+            IEnumerable<ManagementBaseObject> managementObjects;
+            if (FeatureFlags.UseWMICache)
+            {
+                managementObjects = await _cache.QueryAsync(scope, queryFormatted).ConfigureAwait(false);
+            }
+            else
+            {
+                using var mos = new ManagementObjectSearcher(scope, queryFormatted);
+                managementObjects = await mos.GetAsync().ConfigureAwait(false);
+            }
+
             return managementObjects.Any();
         }
         catch
@@ -44,8 +57,19 @@ public static partial class WMI
         try
         {
             var queryFormatted = query.ToString(WMIPropertyValueFormatter.Instance);
-            using var mos = new ManagementObjectSearcher(scope, queryFormatted);
-            var managementObjects = await mos.GetAsync().ConfigureAwait(false);
+
+            // Use WMI cache if enabled via feature flag
+            IEnumerable<ManagementBaseObject> managementObjects;
+            if (FeatureFlags.UseWMICache)
+            {
+                managementObjects = await _cache.QueryAsync(scope, queryFormatted).ConfigureAwait(false);
+            }
+            else
+            {
+                using var mos = new ManagementObjectSearcher(scope, queryFormatted);
+                managementObjects = await mos.GetAsync().ConfigureAwait(false);
+            }
+
             var result = managementObjects.Select(mo => mo.Properties).Select(converter);
             return result;
         }
@@ -60,8 +84,19 @@ public static partial class WMI
         try
         {
             var queryFormatted = query.ToString(WMIPropertyValueFormatter.Instance);
-            using var mos = new ManagementObjectSearcher(scope, queryFormatted);
-            var managementObjects = await mos.GetAsync().ConfigureAwait(false);
+
+            // Use WMI cache if enabled via feature flag (zero duration for method calls)
+            IEnumerable<ManagementBaseObject> managementObjects;
+            if (FeatureFlags.UseWMICache)
+            {
+                managementObjects = await _cache.QueryAsync(scope, queryFormatted, TimeSpan.Zero).ConfigureAwait(false);
+            }
+            else
+            {
+                using var mos = new ManagementObjectSearcher(scope, queryFormatted);
+                managementObjects = await mos.GetAsync().ConfigureAwait(false);
+            }
+
             var managementObject = managementObjects.FirstOrDefault() ?? throw new InvalidOperationException("No results in query");
 
             var mo = (ManagementObject)managementObject;
@@ -83,8 +118,18 @@ public static partial class WMI
         {
             var queryFormatted = query.ToString(WMIPropertyValueFormatter.Instance);
 
-            using var mos = new ManagementObjectSearcher(scope, queryFormatted);
-            var managementObjects = await mos.GetAsync().ConfigureAwait(false);
+            // Use WMI cache if enabled via feature flag (zero duration for method calls)
+            IEnumerable<ManagementBaseObject> managementObjects;
+            if (FeatureFlags.UseWMICache)
+            {
+                managementObjects = await _cache.QueryAsync(scope, queryFormatted, TimeSpan.Zero).ConfigureAwait(false);
+            }
+            else
+            {
+                using var mos = new ManagementObjectSearcher(scope, queryFormatted);
+                managementObjects = await mos.GetAsync().ConfigureAwait(false);
+            }
+
             var managementObject = managementObjects.FirstOrDefault() ?? throw new InvalidOperationException("No results in query");
 
             var mo = (ManagementObject)managementObject;

@@ -18,7 +18,8 @@ namespace LenovoLegionToolkit.Lib.Controllers
 {
     public class RGBKeyboardBacklightController(RGBKeyboardSettings settings, VantageDisabler vantageDisabler)
     {
-        private static readonly AsyncLock IoLock = new();
+        // Changed from static to instance-based for parallel RGB operations
+        private readonly AsyncLock _ioLock = new();
 
         private SafeFileHandle? _deviceHandle;
 
@@ -47,7 +48,7 @@ namespace LenovoLegionToolkit.Lib.Controllers
 
         public async Task SetLightControlOwnerAsync(bool enable, bool restorePreset = false)
         {
-            using (await IoLock.LockAsync().ConfigureAwait(false))
+            using (await _ioLock.LockAsync().ConfigureAwait(false))
             {
                 try
                 {
@@ -90,7 +91,7 @@ namespace LenovoLegionToolkit.Lib.Controllers
 
         public async Task<RGBKeyboardBacklightState> GetStateAsync()
         {
-            using (await IoLock.LockAsync().ConfigureAwait(false))
+            using (await _ioLock.LockAsync().ConfigureAwait(false))
             {
 #if !MOCK_RGB
                 _ = DeviceHandle ?? throw new InvalidOperationException("RGB Keyboard unsupported");
@@ -104,7 +105,7 @@ namespace LenovoLegionToolkit.Lib.Controllers
 
         public async Task SetStateAsync(RGBKeyboardBacklightState state)
         {
-            using (await IoLock.LockAsync().ConfigureAwait(false))
+            using (await _ioLock.LockAsync().ConfigureAwait(false))
             {
 #if !MOCK_RGB
                 _ = DeviceHandle ?? throw new InvalidOperationException("RGB Keyboard unsupported");
@@ -144,7 +145,7 @@ namespace LenovoLegionToolkit.Lib.Controllers
 
         public async Task SetPresetAsync(RGBKeyboardBacklightPreset preset)
         {
-            using (await IoLock.LockAsync().ConfigureAwait(false))
+            using (await _ioLock.LockAsync().ConfigureAwait(false))
             {
 #if !MOCK_RGB
                 _ = DeviceHandle ?? throw new InvalidOperationException("RGB Keyboard unsupported");
@@ -185,7 +186,7 @@ namespace LenovoLegionToolkit.Lib.Controllers
 
         public async Task<RGBKeyboardBacklightPreset> SetNextPresetAsync()
         {
-            using (await IoLock.LockAsync().ConfigureAwait(false))
+            using (await _ioLock.LockAsync().ConfigureAwait(false))
             {
 #if !MOCK_RGB
                 _ = DeviceHandle ?? throw new InvalidOperationException("RGB Keyboard unsupported");

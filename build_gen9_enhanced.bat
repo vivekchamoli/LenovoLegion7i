@@ -39,7 +39,7 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 for /f "tokens=*" %%i in ('dotnet --version') do set DOTNET_VERSION=%%i
-echo ✓ .NET SDK Version: %DOTNET_VERSION%
+echo [OK] .NET SDK Version: %DOTNET_VERSION%
 echo [%TIME%] .NET SDK Version: %DOTNET_VERSION% >> "%BUILD_LOG%"
 
 REM Validate .NET 8 requirement
@@ -55,7 +55,7 @@ if not exist "LenovoLegionToolkit.sln" (
     echo [%TIME%] ERROR: Solution file not found >> "%BUILD_LOG%"
     goto :error_exit
 )
-echo ✓ Solution file found
+echo [OK] Solution file found
 
 REM Check main project file
 if not exist "LenovoLegionToolkit.WPF\LenovoLegionToolkit.WPF.csproj" (
@@ -63,7 +63,7 @@ if not exist "LenovoLegionToolkit.WPF\LenovoLegionToolkit.WPF.csproj" (
     echo [%TIME%] ERROR: Main project file not found >> "%BUILD_LOG%"
     goto :error_exit
 )
-echo ✓ Main project file found
+echo [OK] Main project file found
 
 REM ============================================
 REM Phase 1: Clean and restore
@@ -98,7 +98,7 @@ if exist "%PUBLISH_DIR%" (
     )
 )
 
-echo ✓ Build directories cleaned
+echo [OK] Build directories cleaned
 
 REM Restore NuGet packages with enhanced error handling
 echo Restoring NuGet packages...
@@ -111,7 +111,7 @@ if %ERRORLEVEL% NEQ 0 (
     goto :error_exit
 )
 
-echo ✓ NuGet packages restored successfully
+echo [OK] NuGet packages restored successfully
 
 REM ============================================
 REM Phase 2: Build Windows application
@@ -148,7 +148,7 @@ if not exist "%PUBLISH_DIR%\Lenovo Legion Toolkit.exe" (
     goto :error_exit
 )
 
-echo ✓ Windows application built successfully
+echo [OK] Windows application built successfully
 
 REM Check executable properties
 for %%F in ("%PUBLISH_DIR%\Lenovo Legion Toolkit.exe") do (
@@ -179,7 +179,7 @@ if exist "%INNO_PATH%" (
     REM Create installer with error checking
     "%INNO_PATH%" "make_installer.iss" /Q 2>>"%BUILD_LOG%"
     if %ERRORLEVEL% EQU 0 (
-        echo ✓ Windows installer created successfully
+        echo [OK] Windows installer created successfully
 
         REM Validate installer output
         if exist "build_installer\LenovoLegionToolkitSetup.exe" (
@@ -215,18 +215,18 @@ REM Create comprehensive build report
 echo # Legion Toolkit v6.0.0 - Windows Build Report
 echo.
 echo **Build Date**: %DATE% %TIME%
-echo **Platform**: Windows (WPF)
+echo **Platform**: Windows ^(WPF^)
 echo **Build Environment**: Windows
 echo **Repository**: https://github.com/vivekchamoli/LenovoLegion7i
 echo.
 echo ## Build Results
 echo.
 echo ### Windows Components
-echo - ✓ .NET 8.0 WPF Application: %PUBLISH_DIR%\Lenovo Legion Toolkit.exe
+echo - [OK] .NET 8.0 WPF Application: %PUBLISH_DIR%\Lenovo Legion Toolkit.exe
 if exist "build_installer\LenovoLegionToolkitSetup.exe" (
-    echo - ✓ Windows Installer: build_installer\LenovoLegionToolkitSetup.exe
+    echo - [OK] Windows Installer: build_installer\LenovoLegionToolkitSetup.exe
 ) else (
-    echo - ⚠ Windows Installer: Not created (Inno Setup required)
+    echo - [SKIP] Windows Installer: Not created ^(Inno Setup required^)
 )
 echo.
 echo ## Installation Instructions
@@ -242,9 +242,9 @@ echo 2. Copy %PUBLISH_DIR% folder to desired location
 echo 3. Run "Lenovo Legion Toolkit.exe"
 echo.
 echo ## System Requirements
-echo - Windows 10/11 (64-bit)
+echo - Windows 10/11 ^(64-bit^)
 echo - .NET 8.0 Runtime or later
-echo - Lenovo Legion laptop (for full hardware functionality)
+echo - Lenovo Legion laptop ^(for full hardware functionality^)
 echo.
 echo ## Version Information
 echo - Application Version: 6.0.0
@@ -262,7 +262,7 @@ echo.
 echo Built with Legion Toolkit Windows Build System
 ) > "%PUBLISH_DIR%\BUILD_INFO.md"
 
-echo ✓ Build documentation created
+echo [OK] Build documentation created
 
 REM ============================================
 REM Phase 5: Final validation
@@ -299,7 +299,7 @@ if %VALIDATION_ERRORS% GTR 0 (
     goto :error_exit
 )
 
-echo ✓ All validations passed
+echo [OK] All validations passed
 
 REM ============================================
 REM Build complete

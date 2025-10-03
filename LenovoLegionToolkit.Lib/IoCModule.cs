@@ -1,6 +1,8 @@
 ﻿using Autofac;
+using LenovoLegionToolkit.Lib.AI;
 using LenovoLegionToolkit.Lib.AutoListeners;
 using LenovoLegionToolkit.Lib.Controllers;
+using LenovoLegionToolkit.Lib.Controllers.FanCurve;
 using LenovoLegionToolkit.Lib.Controllers.GodMode;
 using LenovoLegionToolkit.Lib.Controllers.Sensors;
 using LenovoLegionToolkit.Lib.Extensions;
@@ -127,6 +129,11 @@ public class IoCModule : Module
         builder.Register<SpectrumKeyboardBacklightController>();
         builder.Register<WindowsPowerModeController>();
         builder.Register<WindowsPowerPlanController>();
+
+        // Phase 4: Elite Optimization Controllers
+        builder.Register<AdaptiveFanCurveController>();
+        builder.Register<PowerUsagePredictor>();
+        builder.Register<ReactiveSensorsController>(true);
 
         builder.Register<UpdateChecker>();
         builder.Register<WarrantyChecker>();

@@ -18,6 +18,7 @@ namespace LenovoLegionToolkit.WPF.Controls.Dashboard;
 public partial class EliteOptimizationsControl
 {
     private readonly AdaptiveFanCurveController? _adaptiveFanController;
+    private readonly ManualFanController? _manualFanController;
     private readonly PowerUsagePredictor? _powerPredictor;
     private readonly ISensorsController? _sensorsController;
     private readonly PowerModeFeature? _powerModeFeature;
@@ -26,6 +27,7 @@ public partial class EliteOptimizationsControl
     private Task? _refreshTask;
     private bool _manualFanControlEnabled;
     private bool _isUpdatingSliders;
+    private bool _isApplyingFanSpeed;
 
     public EliteOptimizationsControl()
     {
@@ -34,6 +36,7 @@ public partial class EliteOptimizationsControl
         try
         {
             _adaptiveFanController = IoCContainer.TryResolve<AdaptiveFanCurveController>();
+            _manualFanController = IoCContainer.TryResolve<ManualFanController>();
             _powerPredictor = IoCContainer.TryResolve<PowerUsagePredictor>();
             _sensorsController = IoCContainer.TryResolve<ISensorsController>();
             _powerModeFeature = IoCContainer.TryResolve<PowerModeFeature>();
@@ -269,10 +272,24 @@ public partial class EliteOptimizationsControl
         }
     }
 
-    private void AiAdaptiveFanToggle_Checked(object sender, RoutedEventArgs e)
+    private async void AiAdaptiveFanToggle_Checked(object sender, RoutedEventArgs e)
     {
         _manualFanControlEnabled = false;
         UpdateManualControlsState();
+
+        // Reset manual fan control when switching to AI mode
+        if (_manualFanController != null)
+        {
+            try
+            {
+                await _manualFanController.ResetToAutoAsync();
+            }
+            catch (Exception ex)
+            {
+                if (Log.Instance.IsTraceEnabled)
+                    Log.Instance.Trace($"Failed to reset manual fan control", ex);
+            }
+        }
 
         // Enable adaptive fan curves feature flag
         Environment.SetEnvironmentVariable("LLT_FEATURE_ADAPTIVEFANCURVES", "true", EnvironmentVariableTarget.User);
@@ -300,35 +317,55 @@ public partial class EliteOptimizationsControl
         _manualFanControls.Opacity = _manualFanControlEnabled ? 1.0 : 0.5;
     }
 
-    private void CpuFanSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    private async void CpuFanSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
         if (_cpuFanSliderValue == null || _isUpdatingSliders) return;
 
-        var value = (int)e.NewValue;
-        _cpuFanSliderValue.Text = $"{value}%";
+        var cpuValue = (int)e.NewValue;
+        _cpuFanSliderValue.Text = $"{cpuValue}%";
 
-        if (_manualFanControlEnabled)
+        if (_manualFanControlEnabled && _manualFanController != null && !_isApplyingFanSpeed)
         {
-            // TODO: Apply manual fan speed control via fan controller
-            // This would require access to the actual fan control API
-            if (Log.Instance.IsTraceEnabled)
-                Log.Instance.Trace($"Manual CPU fan control: {value}%");
+            await ApplyManualFanSpeedAsync(cpuValue, (int)_gpuFanSlider.Value);
         }
     }
 
-    private void GpuFanSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    private async void GpuFanSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
         if (_gpuFanSliderValue == null || _isUpdatingSliders) return;
 
-        var value = (int)e.NewValue;
-        _gpuFanSliderValue.Text = $"{value}%";
+        var gpuValue = (int)e.NewValue;
+        _gpuFanSliderValue.Text = $"{gpuValue}%";
 
-        if (_manualFanControlEnabled)
+        if (_manualFanControlEnabled && _manualFanController != null && !_isApplyingFanSpeed)
         {
-            // TODO: Apply manual fan speed control via fan controller
-            // This would require access to the actual fan control API
+            await ApplyManualFanSpeedAsync((int)_cpuFanSlider.Value, gpuValue);
+        }
+    }
+
+    private async Task ApplyManualFanSpeedAsync(int cpuPercentage, int gpuPercentage)
+    {
+        if (_isApplyingFanSpeed) return;
+
+        _isApplyingFanSpeed = true;
+
+        try
+        {
+            if (_manualFanController == null) return;
+
+            await _manualFanController.SetFanSpeedPercentageAsync(cpuPercentage, gpuPercentage);
+
             if (Log.Instance.IsTraceEnabled)
-                Log.Instance.Trace($"Manual GPU fan control: {value}%");
+                Log.Instance.Trace($"Manual fan control applied: CPU={cpuPercentage}%, GPU={gpuPercentage}%");
+        }
+        catch (Exception ex)
+        {
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Failed to apply manual fan control", ex);
+        }
+        finally
+        {
+            _isApplyingFanSpeed = false;
         }
     }
 

@@ -132,6 +132,7 @@ public class IoCModule : Module
 
         // Phase 4: Elite Optimization Controllers
         builder.Register<AdaptiveFanCurveController>();
+        builder.Register<ManualFanController>();
         builder.Register<PowerUsagePredictor>();
         builder.Register<ReactiveSensorsController>(true);
 

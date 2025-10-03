@@ -70,15 +70,25 @@ public partial class EliteOptimizationsControl
     {
         try
         {
+            // Update overall feature count
+            var phase4ActiveCount = 0;
+            if (FeatureFlags.UseAdaptiveFanCurves) phase4ActiveCount++;
+            if (FeatureFlags.UseMLAIController) phase4ActiveCount++;
+            if (FeatureFlags.UseReactiveSensors) phase4ActiveCount++;
+            if (FeatureFlags.UseObjectPooling) phase4ActiveCount++;
+
+            var totalActiveFeatures = 5 + phase4ActiveCount; // 5 Phase 1-3 + Phase 4 count
+            _activeFeatureCountText.Text = $"{totalActiveFeatures}/9";
+
             // Update real-time sensor data
             if (_sensorsController != null)
             {
                 var sensorsData = await _sensorsController.GetDataAsync();
 
-                // Update real-time metrics
+                // Update real-time metrics (compact format)
                 _cpuTemp.Text = $"{sensorsData.CPU.Temperature}°C";
-                _cpuFanSpeed.Text = $"{sensorsData.CPU.FanSpeed} RPM";
-                _gpuFanSpeed.Text = $"{sensorsData.GPU.FanSpeed} RPM";
+                _cpuFanSpeed.Text = sensorsData.CPU.FanSpeed > 0 ? $"{sensorsData.CPU.FanSpeed}" : "--";
+                _gpuFanSpeed.Text = sensorsData.GPU.FanSpeed > 0 ? $"{sensorsData.GPU.FanSpeed}" : "--";
 
                 // Color code CPU temperature
                 if (sensorsData.CPU.Temperature > 80)

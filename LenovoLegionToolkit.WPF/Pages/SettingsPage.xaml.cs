@@ -166,6 +166,12 @@ public partial class SettingsPage
 
         _onBatterySinceResetToggle.Visibility = Visibility.Visible;
 
+        // Phase 4: Elite Optimizations
+        _adaptiveFanCurvesToggle.IsChecked = FeatureFlags.UseAdaptiveFanCurves;
+        _mlAiControllerToggle.IsChecked = FeatureFlags.UseMLAIController;
+        _reactiveSensorsToggle.IsChecked = FeatureFlags.UseReactiveSensors;
+        _objectPoolingToggle.IsChecked = FeatureFlags.UseObjectPooling;
+
         _hwinfoIntegrationToggle.IsChecked = _integrationsSettings.Store.HWiNFO;
         _cliInterfaceToggle.IsChecked = _integrationsSettings.Store.CLI;
         _cliPathToggle.IsChecked = SystemPath.HasCLI();
@@ -184,6 +190,10 @@ public partial class SettingsPage
         _synchronizeBrightnessToAllPowerPlansToggle.Visibility = Visibility.Visible;
         _godModeFnQSwitchableToggle.Visibility = Visibility.Visible;
         _powerModeMappingComboBox.Visibility = Visibility.Visible;
+        _adaptiveFanCurvesToggle.Visibility = Visibility.Visible;
+        _mlAiControllerToggle.Visibility = Visibility.Visible;
+        _reactiveSensorsToggle.Visibility = Visibility.Visible;
+        _objectPoolingToggle.Visibility = Visibility.Visible;
         _hwinfoIntegrationToggle.Visibility = Visibility.Visible;
         _cliInterfaceToggle.Visibility = Visibility.Visible;
         _cliPathToggle.Visibility = Visibility.Visible;
@@ -693,5 +703,53 @@ public partial class SettingsPage
             return;
 
         SystemPath.SetCLI(_cliPathToggle.IsChecked ?? false);
+    }
+
+    private void AdaptiveFanCurvesToggle_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isRefreshing)
+            return;
+
+        var state = _adaptiveFanCurvesToggle.IsChecked ?? false;
+        Environment.SetEnvironmentVariable("LLT_FEATURE_ADAPTIVEFANCURVES", state.ToString(), EnvironmentVariableTarget.User);
+        SnackbarHelper.ShowAsync("Adaptive Fan Curves",
+            $"Feature {(state ? "enabled" : "disabled")}. Restart application to apply changes.",
+            SnackbarType.Info);
+    }
+
+    private void MLAIControllerToggle_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isRefreshing)
+            return;
+
+        var state = _mlAiControllerToggle.IsChecked ?? false;
+        Environment.SetEnvironmentVariable("LLT_FEATURE_MLAICONTROLLER", state.ToString(), EnvironmentVariableTarget.User);
+        SnackbarHelper.ShowAsync("ML/AI Power Predictor",
+            $"Feature {(state ? "enabled" : "disabled")}. Restart application to apply changes.",
+            SnackbarType.Info);
+    }
+
+    private void ReactiveSensorsToggle_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isRefreshing)
+            return;
+
+        var state = _reactiveSensorsToggle.IsChecked ?? false;
+        Environment.SetEnvironmentVariable("LLT_FEATURE_REACTIVESENSORS", state.ToString(), EnvironmentVariableTarget.User);
+        SnackbarHelper.ShowAsync("Reactive Sensors",
+            $"Feature {(state ? "enabled" : "disabled")}. Restart application to apply changes.",
+            SnackbarType.Info);
+    }
+
+    private void ObjectPoolingToggle_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isRefreshing)
+            return;
+
+        var state = _objectPoolingToggle.IsChecked ?? false;
+        Environment.SetEnvironmentVariable("LLT_FEATURE_OBJECTPOOLING", state.ToString(), EnvironmentVariableTarget.User);
+        SnackbarHelper.ShowAsync("Object Pooling",
+            $"Feature {(state ? "enabled" : "disabled")}. Restart application to apply changes.",
+            SnackbarType.Info);
     }
 }

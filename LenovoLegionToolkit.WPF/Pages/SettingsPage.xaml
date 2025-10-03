@@ -346,6 +346,62 @@
             Focusable="True"
             FontSize="24"
             FontWeight="Medium"
+            Text="Phase 4: Elite Optimizations (Beta)" />
+
+        <custom:CardControl Margin="0,0,0,8">
+            <custom:CardControl.Header>
+                <controls:CardHeaderControl Title="Adaptive Fan Curves" Subtitle="AI-powered thermal learning for optimal fan control" />
+            </custom:CardControl.Header>
+            <wpfui:ToggleSwitch
+                x:Name="_adaptiveFanCurvesToggle"
+                Margin="0,0,0,8"
+                AutomationProperties.Name="Adaptive Fan Curves"
+                Click="AdaptiveFanCurvesToggle_Click"
+                Visibility="Hidden" />
+        </custom:CardControl>
+
+        <custom:CardControl Margin="0,0,0,8">
+            <custom:CardControl.Header>
+                <controls:CardHeaderControl Title="ML/AI Power Predictor" Subtitle="Intelligent power mode suggestions based on usage patterns" />
+            </custom:CardControl.Header>
+            <wpfui:ToggleSwitch
+                x:Name="_mlAiControllerToggle"
+                Margin="0,0,0,8"
+                AutomationProperties.Name="ML/AI Power Predictor"
+                Click="MLAIControllerToggle_Click"
+                Visibility="Hidden" />
+        </custom:CardControl>
+
+        <custom:CardControl Margin="0,0,0,8">
+            <custom:CardControl.Header>
+                <controls:CardHeaderControl Title="Reactive Sensors" Subtitle="Event-based sensor updates (eliminates polling overhead)" />
+            </custom:CardControl.Header>
+            <wpfui:ToggleSwitch
+                x:Name="_reactiveSensorsToggle"
+                Margin="0,0,0,8"
+                AutomationProperties.Name="Reactive Sensors"
+                Click="ReactiveSensorsToggle_Click"
+                Visibility="Hidden" />
+        </custom:CardControl>
+
+        <custom:CardControl Margin="0,0,0,24">
+            <custom:CardControl.Header>
+                <controls:CardHeaderControl Title="Object Pooling" Subtitle="Memory optimization for RGB operations (30-50% GC reduction)" />
+            </custom:CardControl.Header>
+            <wpfui:ToggleSwitch
+                x:Name="_objectPoolingToggle"
+                Margin="0,0,0,8"
+                AutomationProperties.Name="Object Pooling"
+                Click="ObjectPoolingToggle_Click"
+                Visibility="Hidden" />
+        </custom:CardControl>
+
+        <TextBlock
+            Margin="0,16,0,24"
+            AutomationProperties.Name="{Binding RelativeSource={RelativeSource Mode=Self}, Path=Text}"
+            Focusable="True"
+            FontSize="24"
+            FontWeight="Medium"
             Text="{x:Static resources:Resource.SettingsPage_Integrations_Title}" />
 
         <custom:CardControl Margin="0,0,0,16">

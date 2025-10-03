@@ -712,7 +712,7 @@ public partial class SettingsPage
 
         var state = _adaptiveFanCurvesToggle.IsChecked ?? false;
         Environment.SetEnvironmentVariable("LLT_FEATURE_ADAPTIVEFANCURVES", state.ToString(), EnvironmentVariableTarget.User);
-        SnackbarHelper.ShowAsync("Adaptive Fan Curves",
+        _ = SnackbarHelper.ShowAsync("Adaptive Fan Curves",
             $"Feature {(state ? "enabled" : "disabled")}. Restart application to apply changes.",
             SnackbarType.Info);
     }
@@ -724,7 +724,7 @@ public partial class SettingsPage
 
         var state = _mlAiControllerToggle.IsChecked ?? false;
         Environment.SetEnvironmentVariable("LLT_FEATURE_MLAICONTROLLER", state.ToString(), EnvironmentVariableTarget.User);
-        SnackbarHelper.ShowAsync("ML/AI Power Predictor",
+        _ = SnackbarHelper.ShowAsync("ML/AI Power Predictor",
             $"Feature {(state ? "enabled" : "disabled")}. Restart application to apply changes.",
             SnackbarType.Info);
     }
@@ -736,7 +736,7 @@ public partial class SettingsPage
 
         var state = _reactiveSensorsToggle.IsChecked ?? false;
         Environment.SetEnvironmentVariable("LLT_FEATURE_REACTIVESENSORS", state.ToString(), EnvironmentVariableTarget.User);
-        SnackbarHelper.ShowAsync("Reactive Sensors",
+        _ = SnackbarHelper.ShowAsync("Reactive Sensors",
             $"Feature {(state ? "enabled" : "disabled")}. Restart application to apply changes.",
             SnackbarType.Info);
     }
@@ -748,7 +748,7 @@ public partial class SettingsPage
 
         var state = _objectPoolingToggle.IsChecked ?? false;
         Environment.SetEnvironmentVariable("LLT_FEATURE_OBJECTPOOLING", state.ToString(), EnvironmentVariableTarget.User);
-        SnackbarHelper.ShowAsync("Object Pooling",
+        _ = SnackbarHelper.ShowAsync("Object Pooling",
             $"Feature {(state ? "enabled" : "disabled")}. Restart application to apply changes.",
             SnackbarType.Info);
     }

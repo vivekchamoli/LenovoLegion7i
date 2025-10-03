@@ -311,7 +311,7 @@
                 Margin="0,8,0,0"
                 IsClosable="False"
                 IsOpen="False"
-                Severity="Info" />
+                Severity="Informational" />
 
             <!-- Adaptive Fan Info (if enabled) -->
             <custom:InfoBar

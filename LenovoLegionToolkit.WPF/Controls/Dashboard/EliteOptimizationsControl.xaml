@@ -80,7 +80,7 @@
                     Margin="0,0,8,8"
                     FontSize="16"
                     Foreground="#10B981"
-                    Symbol="DatabaseCheckmark24" />
+                    Symbol="Database24" />
                 <TextBlock
                     Grid.Row="0"
                     Grid.Column="1"
@@ -152,7 +152,7 @@
                     Margin="0,0,8,8"
                     FontSize="16"
                     Foreground="#10B981"
-                    Symbol="Window24" />
+                    Symbol="DesktopFlow24" />
                 <TextBlock
                     Grid.Row="3"
                     Grid.Column="1"
@@ -220,7 +220,7 @@
                     Grid.Column="0"
                     Margin="0,0,8,8"
                     FontSize="16"
-                    Symbol="CloudFlow24" />
+                    Symbol="WeatherHailNight24" />
                 <TextBlock
                     Grid.Row="0"
                     Grid.Column="1"
@@ -243,7 +243,7 @@
                     Grid.Column="0"
                     Margin="0,0,8,8"
                     FontSize="16"
-                    Symbol="Brain24" />
+                    Symbol="LightbulbFilament24" />
                 <TextBlock
                     Grid.Row="1"
                     Grid.Column="1"

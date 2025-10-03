@@ -1,0 +1,150 @@
+<UserControl
+    x:Class="LenovoLegionToolkit.WPF.Controls.Dashboard.Phase4StatusControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:custom="clr-namespace:LenovoLegionToolkit.WPF.Controls.Custom"
+    xmlns:wpfui="http://schemas.lepo.co/wpfui/2022/xaml">
+
+    <custom:CardControl Margin="0,0,0,16" Icon="Rocket24">
+        <custom:CardControl.Header>
+            <StackPanel>
+                <TextBlock FontWeight="SemiBold" Text="Phase 4: Elite Optimizations Status" />
+                <TextBlock
+                    Margin="0,4,0,0"
+                    FontSize="12"
+                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                    Text="Real-time status of advanced features"
+                    TextWrapping="Wrap" />
+            </StackPanel>
+        </custom:CardControl.Header>
+
+        <StackPanel Margin="0,8,0,8">
+            <!-- Feature Status Grid -->
+            <Grid x:Name="_featuresGrid" Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- Adaptive Fan Curves -->
+                <wpfui:SymbolIcon
+                    x:Name="_adaptiveFanIcon"
+                    Grid.Row="0"
+                    Grid.Column="0"
+                    Margin="0,0,8,8"
+                    FontSize="16"
+                    Symbol="CloudFlow24" />
+                <TextBlock
+                    Grid.Row="0"
+                    Grid.Column="1"
+                    Margin="0,0,8,8"
+                    VerticalAlignment="Center"
+                    Text="Adaptive Fan Curves" />
+                <TextBlock
+                    x:Name="_adaptiveFanStatus"
+                    Grid.Row="0"
+                    Grid.Column="2"
+                    Margin="0,0,0,8"
+                    VerticalAlignment="Center"
+                    FontSize="12"
+                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                    Text="Disabled" />
+
+                <!-- ML/AI Power Predictor -->
+                <wpfui:SymbolIcon
+                    x:Name="_mlAiIcon"
+                    Grid.Row="1"
+                    Grid.Column="0"
+                    Margin="0,0,8,8"
+                    FontSize="16"
+                    Symbol="Brain24" />
+                <TextBlock
+                    Grid.Row="1"
+                    Grid.Column="1"
+                    Margin="0,0,8,8"
+                    VerticalAlignment="Center"
+                    Text="ML/AI Power Predictor" />
+                <TextBlock
+                    x:Name="_mlAiStatus"
+                    Grid.Row="1"
+                    Grid.Column="2"
+                    Margin="0,0,0,8"
+                    VerticalAlignment="Center"
+                    FontSize="12"
+                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                    Text="Disabled" />
+
+                <!-- Reactive Sensors -->
+                <wpfui:SymbolIcon
+                    x:Name="_reactiveSensorsIcon"
+                    Grid.Row="2"
+                    Grid.Column="0"
+                    Margin="0,0,8,8"
+                    FontSize="16"
+                    Symbol="Flash24" />
+                <TextBlock
+                    Grid.Row="2"
+                    Grid.Column="1"
+                    Margin="0,0,8,8"
+                    VerticalAlignment="Center"
+                    Text="Reactive Sensors" />
+                <TextBlock
+                    x:Name="_reactiveSensorsStatus"
+                    Grid.Row="2"
+                    Grid.Column="2"
+                    Margin="0,0,0,8"
+                    VerticalAlignment="Center"
+                    FontSize="12"
+                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                    Text="Disabled" />
+
+                <!-- Object Pooling -->
+                <wpfui:SymbolIcon
+                    x:Name="_objectPoolingIcon"
+                    Grid.Row="3"
+                    Grid.Column="0"
+                    Margin="0,0,8,0"
+                    FontSize="16"
+                    Symbol="Storage24" />
+                <TextBlock
+                    Grid.Row="3"
+                    Grid.Column="1"
+                    Margin="0,0,8,0"
+                    VerticalAlignment="Center"
+                    Text="Object Pooling" />
+                <TextBlock
+                    x:Name="_objectPoolingStatus"
+                    Grid.Row="3"
+                    Grid.Column="2"
+                    VerticalAlignment="Center"
+                    FontSize="12"
+                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                    Text="Disabled" />
+            </Grid>
+
+            <!-- AI Suggestions Panel (visible when ML/AI is enabled) -->
+            <custom:InfoBar
+                x:Name="_aiSuggestionInfoBar"
+                Margin="0,8,0,0"
+                IsClosable="False"
+                IsOpen="False"
+                Severity="Info" />
+
+            <!-- Adaptive Fan Curve Info (visible when enabled) -->
+            <custom:InfoBar
+                x:Name="_adaptiveFanInfoBar"
+                Margin="0,8,0,0"
+                IsClosable="False"
+                IsOpen="False"
+                Severity="Success" />
+        </StackPanel>
+    </custom:CardControl>
+
+</UserControl>

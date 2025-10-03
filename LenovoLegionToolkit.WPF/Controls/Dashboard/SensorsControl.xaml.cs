@@ -4,11 +4,13 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Threading;
 using Humanizer;
 using LenovoLegionToolkit.Lib;
 using LenovoLegionToolkit.Lib.Controllers.Sensors;
 using LenovoLegionToolkit.Lib.Settings;
 using LenovoLegionToolkit.Lib.Utils;
+using LenovoLegionToolkit.WPF.Extensions;
 using LenovoLegionToolkit.WPF.Resources;
 using LenovoLegionToolkit.WPF.Settings;
 using Wpf.Ui.Common;
@@ -93,7 +95,7 @@ public partial class SensorsControl
                 if (Log.Instance.IsTraceEnabled)
                     Log.Instance.Trace($"Sensors not supported.");
 
-                Dispatcher.Invoke(() => Visibility = Visibility.Collapsed);
+                await Dispatcher.InvokeAsync(() => Visibility = Visibility.Collapsed, DispatcherPriority.Background);
                 return;
             }
 
@@ -104,7 +106,7 @@ public partial class SensorsControl
                 try
                 {
                     var data = await _controller.GetDataAsync();
-                    Dispatcher.Invoke(() => UpdateValues(data));
+                    await Dispatcher.InvokeAsync(() => UpdateValues(data), DispatcherPriority.Background);
                     await Task.Delay(TimeSpan.FromSeconds(_dashboardSettings.Store.SensorsRefreshIntervalSeconds), token);
                 }
                 catch (OperationCanceledException) { }
@@ -113,7 +115,7 @@ public partial class SensorsControl
                     if (Log.Instance.IsTraceEnabled)
                         Log.Instance.Trace($"Sensors refresh failed.", ex);
 
-                    Dispatcher.Invoke(() => UpdateValues(SensorsData.Empty));
+                    await Dispatcher.InvokeAsync(() => UpdateValues(SensorsData.Empty), DispatcherPriority.Background);
                 }
             }
 

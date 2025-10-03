@@ -309,11 +309,9 @@ public class AutomationProcessor(
 
     private async Task ProcessEvent(IAutomationEvent e)
     {
-        var potentialMatch = _pipelines.SelectMany(p => p.AllTriggers)
-            .Select(async t => await t.IsMatchingEvent(e).ConfigureAwait(false))
-            .Select(t => t.Result)
-            .Where(t => t)
-            .Any();
+        // Optimized: Direct async iteration instead of LINQ anti-pattern
+        // Eliminates blocking .Result calls and unnecessary allocations
+        var potentialMatch = await HasMatchingTriggerAsync(e).ConfigureAwait(false);
 
         if (!potentialMatch)
             return;
@@ -322,6 +320,25 @@ public class AutomationProcessor(
             Log.Instance.Trace($"Processing event {e}... [type={e.GetType().Name}]");
 
         await RunAsync(e).ConfigureAwait(false);
+    }
+
+    private async Task<bool> HasMatchingTriggerAsync(IAutomationEvent e)
+    {
+        // Early exit for empty pipelines
+        if (_pipelines.Count == 0)
+            return false;
+
+        // Direct iteration - no LINQ allocations, no blocking async
+        foreach (var pipeline in _pipelines)
+        {
+            foreach (var trigger in pipeline.AllTriggers)
+            {
+                if (await trigger.IsMatchingEvent(e).ConfigureAwait(false))
+                    return true;
+            }
+        }
+
+        return false;
     }
 
     #endregion

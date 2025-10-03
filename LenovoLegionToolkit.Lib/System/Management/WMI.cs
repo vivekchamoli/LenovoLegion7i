@@ -15,7 +15,7 @@ public static partial class WMI
         try
         {
             var queryFormatted = query.ToString(WMIPropertyValueFormatter.Instance);
-            var mos = new ManagementObjectSearcher(scope, queryFormatted);
+            using var mos = new ManagementObjectSearcher(scope, queryFormatted);
             var managementObjects = await mos.GetAsync().ConfigureAwait(false);
             return managementObjects.Any();
         }
@@ -44,7 +44,7 @@ public static partial class WMI
         try
         {
             var queryFormatted = query.ToString(WMIPropertyValueFormatter.Instance);
-            var mos = new ManagementObjectSearcher(scope, queryFormatted);
+            using var mos = new ManagementObjectSearcher(scope, queryFormatted);
             var managementObjects = await mos.GetAsync().ConfigureAwait(false);
             var result = managementObjects.Select(mo => mo.Properties).Select(converter);
             return result;
@@ -60,7 +60,7 @@ public static partial class WMI
         try
         {
             var queryFormatted = query.ToString(WMIPropertyValueFormatter.Instance);
-            var mos = new ManagementObjectSearcher(scope, queryFormatted);
+            using var mos = new ManagementObjectSearcher(scope, queryFormatted);
             var managementObjects = await mos.GetAsync().ConfigureAwait(false);
             var managementObject = managementObjects.FirstOrDefault() ?? throw new InvalidOperationException("No results in query");
 
@@ -83,7 +83,7 @@ public static partial class WMI
         {
             var queryFormatted = query.ToString(WMIPropertyValueFormatter.Instance);
 
-            var mos = new ManagementObjectSearcher(scope, queryFormatted);
+            using var mos = new ManagementObjectSearcher(scope, queryFormatted);
             var managementObjects = await mos.GetAsync().ConfigureAwait(false);
             var managementObject = managementObjects.FirstOrDefault() ?? throw new InvalidOperationException("No results in query");
 

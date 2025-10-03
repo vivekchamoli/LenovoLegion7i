@@ -5,22 +5,22 @@
     xmlns:custom="clr-namespace:LenovoLegionToolkit.WPF.Controls.Custom"
     xmlns:wpfui="http://schemas.lepo.co/wpfui/2022/xaml">
 
-    <custom:CardControl Margin="0,0,0,16" Icon="Rocket24">
+    <custom:CardControl Margin="0,0,0,16" Icon="BrainCircuit24">
         <custom:CardControl.Header>
             <StackPanel>
-                <TextBlock FontWeight="SemiBold" FontSize="16" Text="🚀 Elite Optimizations v1.0.0" />
+                <TextBlock FontWeight="SemiBold" FontSize="16" Text="AI / ML Performance System" />
                 <TextBlock
                     Margin="0,4,0,0"
                     FontSize="12"
                     Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                    Text="Real-time status of all performance enhancements"
+                    Text="Intelligent performance optimization with real-time monitoring"
                     TextWrapping="Wrap" />
             </StackPanel>
         </custom:CardControl.Header>
 
         <StackPanel Margin="0,8,0,8">
 
-            <!-- Overall Performance Summary -->
+            <!-- Real-time System Metrics -->
             <Border
                 Padding="12"
                 Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
@@ -33,33 +33,179 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
 
                     <StackPanel Grid.Column="0">
-                        <TextBlock FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="Performance" />
-                        <TextBlock x:Name="_perfImprovement" FontSize="20" FontWeight="Bold" Foreground="#10B981" Text="↑94%" />
+                        <TextBlock FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="CPU Temp" />
+                        <TextBlock x:Name="_cpuTemp" FontSize="18" FontWeight="Bold" Text="--°C" />
                     </StackPanel>
 
                     <StackPanel Grid.Column="1">
-                        <TextBlock FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="Memory Optimized" />
-                        <TextBlock x:Name="_memoryReduction" FontSize="20" FontWeight="Bold" Foreground="#10B981" Text="↓68%" />
+                        <TextBlock FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="CPU Fan" />
+                        <TextBlock x:Name="_cpuFanSpeed" FontSize="18" FontWeight="Bold" Text="-- RPM" />
                     </StackPanel>
 
                     <StackPanel Grid.Column="2">
-                        <TextBlock FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="Active Features" />
-                        <TextBlock x:Name="_activeFeatures" FontSize="20" FontWeight="Bold" Text="5/9" />
+                        <TextBlock FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="GPU Fan" />
+                        <TextBlock x:Name="_gpuFanSpeed" FontSize="18" FontWeight="Bold" Text="-- RPM" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="3">
+                        <TextBlock FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="Performance" />
+                        <TextBlock x:Name="_perfImprovement" FontSize="18" FontWeight="Bold" Foreground="#10B981" Text="↑94%" />
                     </StackPanel>
                 </Grid>
             </Border>
 
-            <!-- Phase 1-3: Production Optimizations (Always Active) -->
+            <!-- Fan Control Section -->
+            <TextBlock
+                Margin="0,0,0,12"
+                FontSize="14"
+                FontWeight="SemiBold"
+                Text="Thermal Management" />
+
+            <Border
+                Padding="16"
+                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Margin="0,0,0,16">
+                <StackPanel>
+                    <!-- AI/ML Adaptive Toggle -->
+                    <Grid Margin="0,0,0,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <wpfui:SymbolIcon
+                            Grid.Column="0"
+                            Margin="0,0,12,0"
+                            FontSize="20"
+                            Foreground="#6366F1"
+                            Symbol="WeatherHailNight24" />
+
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock FontWeight="SemiBold" Text="AI/ML Adaptive Fan Control" />
+                            <TextBlock
+                                FontSize="11"
+                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                Text="Automatically optimize fan curves based on thermal patterns" />
+                        </StackPanel>
+
+                        <wpfui:ToggleSwitch
+                            x:Name="_aiAdaptiveFanToggle"
+                            Grid.Column="2"
+                            VerticalAlignment="Center"
+                            Checked="AiAdaptiveFanToggle_Checked"
+                            Unchecked="AiAdaptiveFanToggle_Unchecked" />
+                    </Grid>
+
+                    <!-- Manual Fan Controls -->
+                    <StackPanel x:Name="_manualFanControls">
+                        <TextBlock
+                            Margin="0,0,0,8"
+                            FontSize="12"
+                            FontWeight="SemiBold"
+                            Text="Manual Fan Control" />
+
+                        <!-- CPU Fan Control -->
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="80" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="60" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock
+                                Grid.Column="0"
+                                VerticalAlignment="Center"
+                                Text="CPU Fan:" />
+
+                            <Slider
+                                x:Name="_cpuFanSlider"
+                                Grid.Column="1"
+                                Margin="8,0,8,0"
+                                VerticalAlignment="Center"
+                                Minimum="0"
+                                Maximum="100"
+                                Value="50"
+                                TickFrequency="10"
+                                IsSnapToTickEnabled="True"
+                                ValueChanged="CpuFanSlider_ValueChanged" />
+
+                            <TextBlock
+                                x:Name="_cpuFanSliderValue"
+                                Grid.Column="2"
+                                VerticalAlignment="Center"
+                                HorizontalAlignment="Right"
+                                FontWeight="SemiBold"
+                                Text="50%" />
+                        </Grid>
+
+                        <!-- GPU Fan Control -->
+                        <Grid Margin="0,0,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="80" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="60" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock
+                                Grid.Column="0"
+                                VerticalAlignment="Center"
+                                Text="GPU Fan:" />
+
+                            <Slider
+                                x:Name="_gpuFanSlider"
+                                Grid.Column="1"
+                                Margin="8,0,8,0"
+                                VerticalAlignment="Center"
+                                Minimum="0"
+                                Maximum="100"
+                                Value="50"
+                                TickFrequency="10"
+                                IsSnapToTickEnabled="True"
+                                ValueChanged="GpuFanSlider_ValueChanged" />
+
+                            <TextBlock
+                                x:Name="_gpuFanSliderValue"
+                                Grid.Column="2"
+                                VerticalAlignment="Center"
+                                HorizontalAlignment="Right"
+                                FontWeight="SemiBold"
+                                Text="50%" />
+                        </Grid>
+
+                        <TextBlock
+                            Margin="0,12,0,0"
+                            FontSize="11"
+                            Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                            Text="Note: Manual control overrides system fan curves. Use with caution."
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <!-- Adaptive Fan Info (if enabled) -->
+                    <custom:InfoBar
+                        x:Name="_adaptiveFanInfoBar"
+                        Margin="0,12,0,0"
+                        IsClosable="False"
+                        IsOpen="False"
+                        Severity="Success" />
+                </StackPanel>
+            </Border>
+
+            <!-- Core Performance Optimizations -->
             <TextBlock
                 Margin="0,0,0,8"
                 FontSize="14"
                 FontWeight="SemiBold"
-                Text="Phase 1-3: Production Optimizations (Always Active)" />
+                Text="Core Performance Optimizations" />
 
-            <Grid x:Name="_phase13Grid" Margin="0,0,0,16">
+            <Grid Margin="0,0,0,16">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
@@ -110,7 +256,7 @@
                     Grid.Column="1"
                     Margin="0,0,8,8"
                     VerticalAlignment="Center"
-                    Text="Memory Leak Fixes" />
+                    Text="Memory Leak Prevention" />
                 <TextBlock
                     Grid.Row="1"
                     Grid.Column="2"
@@ -193,14 +339,14 @@
                     Text="↑67% faster" />
             </Grid>
 
-            <!-- Phase 4: Beta Optimizations (Optional) -->
+            <!-- AI/ML Intelligence -->
             <TextBlock
                 Margin="0,0,0,8"
                 FontSize="14"
                 FontWeight="SemiBold"
-                Text="Phase 4: Beta Optimizations (Optional - Feature Flags)" />
+                Text="AI/ML Intelligence" />
 
-            <Grid x:Name="_phase4Grid" Margin="0,0,0,12">
+            <Grid Margin="0,0,0,16">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
@@ -209,26 +355,24 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <!-- Adaptive Fan Curves -->
+                <!-- ML/AI Power Predictor -->
                 <wpfui:SymbolIcon
-                    x:Name="_adaptiveFanIcon"
+                    x:Name="_mlAiIcon"
                     Grid.Row="0"
                     Grid.Column="0"
                     Margin="0,0,8,8"
                     FontSize="16"
-                    Symbol="WeatherHailNight24" />
+                    Symbol="LightbulbFilament24" />
                 <TextBlock
                     Grid.Row="0"
                     Grid.Column="1"
                     Margin="0,0,8,8"
                     VerticalAlignment="Center"
-                    Text="Adaptive Fan Curves (AI Learning)" />
+                    Text="ML Power Mode Prediction (k-NN)" />
                 <TextBlock
-                    x:Name="_adaptiveFanStatus"
+                    x:Name="_mlAiStatus"
                     Grid.Row="0"
                     Grid.Column="2"
                     Margin="0,0,0,8"
@@ -236,23 +380,64 @@
                     FontSize="12"
                     Text="Disabled" />
 
-                <!-- ML/AI Power Predictor -->
+                <!-- Adaptive Fan Curves -->
                 <wpfui:SymbolIcon
-                    x:Name="_mlAiIcon"
+                    x:Name="_adaptiveFanIcon"
                     Grid.Row="1"
                     Grid.Column="0"
-                    Margin="0,0,8,8"
+                    Margin="0,0,8,0"
                     FontSize="16"
-                    Symbol="LightbulbFilament24" />
+                    Symbol="WeatherHailNight24" />
                 <TextBlock
                     Grid.Row="1"
                     Grid.Column="1"
+                    Margin="0,0,8,0"
+                    VerticalAlignment="Center"
+                    Text="Adaptive Fan Curves (Thermal Learning)" />
+                <TextBlock
+                    x:Name="_adaptiveFanStatus"
+                    Grid.Row="1"
+                    Grid.Column="2"
+                    VerticalAlignment="Center"
+                    FontSize="12"
+                    Text="Disabled" />
+            </Grid>
+
+            <!-- Resource Management -->
+            <TextBlock
+                Margin="0,0,0,8"
+                FontSize="14"
+                FontWeight="SemiBold"
+                Text="Resource Management" />
+
+            <Grid Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- Object Pooling -->
+                <wpfui:SymbolIcon
+                    x:Name="_objectPoolingIcon"
+                    Grid.Row="0"
+                    Grid.Column="0"
+                    Margin="0,0,8,8"
+                    FontSize="16"
+                    Symbol="Storage24" />
+                <TextBlock
+                    Grid.Row="0"
+                    Grid.Column="1"
                     Margin="0,0,8,8"
                     VerticalAlignment="Center"
-                    Text="ML/AI Power Predictor (k-NN)" />
+                    Text="Object Pooling (GC Reduction)" />
                 <TextBlock
-                    x:Name="_mlAiStatus"
-                    Grid.Row="1"
+                    x:Name="_objectPoolingStatus"
+                    Grid.Row="0"
                     Grid.Column="2"
                     Margin="0,0,0,8"
                     VerticalAlignment="Center"
@@ -262,73 +447,33 @@
                 <!-- Reactive Sensors -->
                 <wpfui:SymbolIcon
                     x:Name="_reactiveSensorsIcon"
-                    Grid.Row="2"
+                    Grid.Row="1"
                     Grid.Column="0"
-                    Margin="0,0,8,8"
+                    Margin="0,0,8,0"
                     FontSize="16"
                     Symbol="Flash24" />
                 <TextBlock
-                    Grid.Row="2"
+                    Grid.Row="1"
                     Grid.Column="1"
-                    Margin="0,0,8,8"
+                    Margin="0,0,8,0"
                     VerticalAlignment="Center"
-                    Text="Reactive Sensors (Event-based)" />
+                    Text="Reactive Sensors (Event-based Monitoring)" />
                 <TextBlock
                     x:Name="_reactiveSensorsStatus"
-                    Grid.Row="2"
-                    Grid.Column="2"
-                    Margin="0,0,0,8"
-                    VerticalAlignment="Center"
-                    FontSize="12"
-                    Text="Disabled" />
-
-                <!-- Object Pooling -->
-                <wpfui:SymbolIcon
-                    x:Name="_objectPoolingIcon"
-                    Grid.Row="3"
-                    Grid.Column="0"
-                    Margin="0,0,8,0"
-                    FontSize="16"
-                    Symbol="Storage24" />
-                <TextBlock
-                    Grid.Row="3"
-                    Grid.Column="1"
-                    Margin="0,0,8,0"
-                    VerticalAlignment="Center"
-                    Text="Object Pooling (GC Reduction)" />
-                <TextBlock
-                    x:Name="_objectPoolingStatus"
-                    Grid.Row="3"
+                    Grid.Row="1"
                     Grid.Column="2"
                     VerticalAlignment="Center"
                     FontSize="12"
                     Text="Disabled" />
             </Grid>
 
-            <!-- AI/ML Suggestions (if enabled) -->
+            <!-- AI/ML Power Mode Suggestion -->
             <custom:InfoBar
                 x:Name="_aiSuggestionInfoBar"
                 Margin="0,8,0,0"
                 IsClosable="False"
                 IsOpen="False"
                 Severity="Informational" />
-
-            <!-- Adaptive Fan Info (if enabled) -->
-            <custom:InfoBar
-                x:Name="_adaptiveFanInfoBar"
-                Margin="0,8,0,0"
-                IsClosable="False"
-                IsOpen="False"
-                Severity="Success" />
-
-            <!-- Quick Stats Footer -->
-            <TextBlock
-                x:Name="_quickStats"
-                Margin="0,12,0,0"
-                FontSize="11"
-                Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                Text="Configure Phase 4 features in Settings → Phase 4: Elite Optimizations"
-                TextAlignment="Center" />
 
         </StackPanel>
     </custom:CardControl>

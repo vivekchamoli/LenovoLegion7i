@@ -1,28 +1,27 @@
 @echo off
-REM Legion Toolkit Elite Enhancement Framework v6.0.0
-REM Zero-Error Build Script for Legion Slim 7i Gen 9 (16IRX9)
+REM Legion Toolkit Windows Build Script v6.0.0
+REM Zero-Error Build Script for Windows (WPF Application)
 REM Complete error handling and validation system
 
 setlocal enabledelayedexpansion
 
 echo ==========================================
-echo Legion Toolkit Gen 9 Enhanced Build System
+echo Legion Toolkit Windows Build System
 echo Version: 6.0.0 - Production Ready
-echo Target: Legion Slim 7i Gen 9 (16IRX9)
+echo Platform: Windows (WPF)
 echo ==========================================
 echo.
 
 REM Initialize build variables
 set BUILD_SUCCESS=0
 set BUILD_DIR=%CD%
-set PUBLISH_DIR=%BUILD_DIR%\publish
-set DIST_DIR=%BUILD_DIR%\dist
+set PUBLISH_DIR=%BUILD_DIR%\publish\windows
 set BUILD_LOG=%BUILD_DIR%\build.log
 
 REM Clear previous log
 if exist "%BUILD_LOG%" del "%BUILD_LOG%"
 
-echo [%TIME%] Starting build process... >> "%BUILD_LOG%"
+echo [%TIME%] Starting Windows build process... >> "%BUILD_LOG%"
 
 REM ============================================
 REM Phase 0: Pre-build validation
@@ -118,7 +117,7 @@ REM ============================================
 REM Phase 2: Build Windows application
 REM ============================================
 echo.
-echo Phase 2: Build Windows Application
+echo Phase 2: Build Windows Application (WPF)
 echo ====================================
 
 echo Building Legion Toolkit for Windows...
@@ -158,73 +157,10 @@ for %%F in ("%PUBLISH_DIR%\Lenovo Legion Toolkit.exe") do (
 )
 
 REM ============================================
-REM Phase 3: Linux component preparation
+REM Phase 3: Create Windows installer
 REM ============================================
 echo.
-echo Phase 3: Linux Component Preparation
-echo ====================================
-
-REM Check if Linux components exist
-set LINUX_AVAILABLE=1
-if not exist "LenovoLegion\linux_core" (
-    echo WARNING: Linux core directory not found
-    echo [%TIME%] WARNING: Linux core directory missing >> "%BUILD_LOG%"
-    set LINUX_AVAILABLE=0
-)
-
-if %LINUX_AVAILABLE% EQU 1 (
-    echo Preparing Linux components...
-
-    REM Create Linux distribution structure
-    mkdir "%DIST_DIR%\linux" 2>nul
-    mkdir "%DIST_DIR%\linux\kernel-module" 2>nul
-    mkdir "%DIST_DIR%\linux\gui" 2>nul
-    mkdir "%DIST_DIR%\linux\packages" 2>nul
-
-    REM Copy kernel module with validation
-    if exist "LenovoLegion\linux_core\kernel_module" (
-        xcopy "LenovoLegion\linux_core\kernel_module\*" "%DIST_DIR%\linux\kernel-module\" /s /y /q 2>>"%BUILD_LOG%"
-        if %ERRORLEVEL% EQU 0 (
-            echo ✓ Kernel module files copied
-        ) else (
-            echo WARNING: Kernel module copy had issues
-            echo [%TIME%] WARNING: Kernel module copy errors >> "%BUILD_LOG%"
-        )
-    ) else (
-        echo WARNING: Kernel module source not found
-        echo [%TIME%] WARNING: Kernel module source missing >> "%BUILD_LOG%"
-    )
-
-    REM Copy GUI files with validation
-    if exist "LenovoLegion\linux_core\gui" (
-        xcopy "LenovoLegion\linux_core\gui\*" "%DIST_DIR%\linux\gui\" /s /y /q 2>>"%BUILD_LOG%"
-        if %ERRORLEVEL% EQU 0 (
-            echo ✓ GUI application files copied
-        ) else (
-            echo WARNING: GUI files copy had issues
-            echo [%TIME%] WARNING: GUI files copy errors >> "%BUILD_LOG%"
-        )
-    ) else (
-        echo WARNING: GUI application source not found
-        echo [%TIME%] WARNING: GUI source missing >> "%BUILD_LOG%"
-    )
-
-    REM Copy build scripts
-    if exist "build_linux_packages.sh" (
-        copy "build_linux_packages.sh" "%DIST_DIR%\linux\" >nul 2>&1
-        echo ✓ Linux build script copied
-    )
-
-    echo ✓ Linux components prepared
-) else (
-    echo ⚠ Skipping Linux components (not available)
-)
-
-REM ============================================
-REM Phase 4: Create Windows installer
-REM ============================================
-echo.
-echo Phase 4: Create Windows Installer
+echo Phase 3: Create Windows Installer
 echo ====================================
 
 REM Check for Inno Setup
@@ -261,44 +197,36 @@ if exist "%INNO_PATH%" (
     )
 ) else (
     echo WARNING: Inno Setup not found, skipping installer creation
+    echo   Install Inno Setup 6 from: https://jrsoftware.org/isdl.php
     echo [%TIME%] WARNING: Inno Setup not available >> "%BUILD_LOG%"
 )
 
 REM ============================================
-REM Phase 5: Create documentation
+REM Phase 4: Create documentation
 REM ============================================
 echo.
-echo Phase 5: Create Build Documentation
+echo Phase 4: Create Build Documentation
 echo ====================================
 
 echo Creating build documentation...
 
 REM Create comprehensive build report
 (
-echo # Legion Toolkit v6.0.0 Build Report
+echo # Legion Toolkit v6.0.0 - Windows Build Report
 echo.
 echo **Build Date**: %DATE% %TIME%
-echo **Target Hardware**: Legion Slim 7i Gen 9 ^(16IRX9^)
+echo **Platform**: Windows (WPF)
 echo **Build Environment**: Windows
 echo **Repository**: https://github.com/vivekchamoli/LenovoLegion7i
 echo.
 echo ## Build Results
 echo.
 echo ### Windows Components
-echo - ✓ .NET 8.0 Application: %PUBLISH_DIR%\Lenovo Legion Toolkit.exe
+echo - ✓ .NET 8.0 WPF Application: %PUBLISH_DIR%\Lenovo Legion Toolkit.exe
 if exist "build_installer\LenovoLegionToolkitSetup.exe" (
     echo - ✓ Windows Installer: build_installer\LenovoLegionToolkitSetup.exe
 ) else (
-    echo - ⚠ Windows Installer: Not created
-)
-echo.
-echo ### Linux Components
-if %LINUX_AVAILABLE% EQU 1 (
-    echo - ✓ Kernel Module Source: %DIST_DIR%\linux\kernel-module\
-    echo - ✓ GUI Application Source: %DIST_DIR%\linux\gui\
-    echo - ✓ Build Scripts: %DIST_DIR%\linux\build_linux_packages.sh
-) else (
-    echo - ⚠ Linux Components: Not available
+    echo - ⚠ Windows Installer: Not created (Inno Setup required)
 )
 echo.
 echo ## Installation Instructions
@@ -308,34 +236,39 @@ echo 1. Run build_installer\LenovoLegionToolkitSetup.exe as Administrator
 echo 2. Follow installation wizard
 echo 3. Launch from Start Menu: "Lenovo Legion Toolkit"
 echo.
-echo ### Linux Installation
-echo 1. Copy dist\linux\ directory to Linux system
-echo 2. Run: chmod +x build_linux_packages.sh
-echo 3. Run: sudo ./build_linux_packages.sh
-echo 4. Install created package for your distribution
+echo ### Manual Installation
+echo 1. Ensure .NET 8.0 Runtime is installed
+echo 2. Copy %PUBLISH_DIR% folder to desired location
+echo 3. Run "Lenovo Legion Toolkit.exe"
 echo.
-echo ## Hardware Requirements
-echo - Legion Slim 7i Gen 9 ^(16IRX9^)
-echo - Intel Core i9-14900HX CPU
-echo - NVIDIA RTX 4070 Laptop GPU
-echo - Windows 10/11 or Linux with kernel 5.4+
+echo ## System Requirements
+echo - Windows 10/11 (64-bit)
+echo - .NET 8.0 Runtime or later
+echo - Lenovo Legion laptop (for full hardware functionality)
 echo.
 echo ## Version Information
 echo - Application Version: 6.0.0
 echo - .NET Version: %DOTNET_VERSION%
 echo - Build Configuration: Release
 echo - Target Architecture: x64
+echo - Platform: Windows WPF
 echo.
-echo Built with Legion Toolkit Elite Enhancement Framework
-) > "%DIST_DIR%\BUILD_REPORT.md"
+echo ## Project Information
+echo - Repository: https://github.com/vivekchamoli/LenovoLegion7i
+echo - Platform: Windows-only
+echo - License: MIT
+echo - Author: Vivek Chamoli
+echo.
+echo Built with Legion Toolkit Windows Build System
+) > "%PUBLISH_DIR%\BUILD_INFO.md"
 
 echo ✓ Build documentation created
 
 REM ============================================
-REM Phase 6: Final validation
+REM Phase 5: Final validation
 REM ============================================
 echo.
-echo Phase 6: Final Validation
+echo Phase 5: Final Validation
 echo ====================================
 
 echo Performing final validation...
@@ -348,16 +281,14 @@ if not exist "%PUBLISH_DIR%\Lenovo Legion Toolkit.exe" (
     set /a VALIDATION_ERRORS+=1
 )
 
-REM Validate installer (if Inno Setup was available)
-if exist "%INNO_PATH%" (
-    if not exist "build_installer\LenovoLegionToolkitSetup.exe" (
-        echo WARNING: Windows installer missing
-        echo [%TIME%] WARNING: Windows installer validation failed >> "%BUILD_LOG%"
-    )
+REM Validate core libraries
+if not exist "%PUBLISH_DIR%\LenovoLegionToolkit.Lib.dll" (
+    echo ERROR: Core library missing
+    set /a VALIDATION_ERRORS+=1
 )
 
 REM Validate documentation
-if not exist "%DIST_DIR%\BUILD_REPORT.md" (
+if not exist "%PUBLISH_DIR%\BUILD_INFO.md" (
     echo ERROR: Build documentation missing
     set /a VALIDATION_ERRORS+=1
 )
@@ -383,26 +314,20 @@ echo   - Windows Application: READY
 if exist "build_installer\LenovoLegionToolkitSetup.exe" (
     echo   - Windows Installer: CREATED
 ) else (
-    echo   - Windows Installer: SKIPPED
-)
-if %LINUX_AVAILABLE% EQU 1 (
-    echo   - Linux Components: PREPARED
-) else (
-    echo   - Linux Components: NOT AVAILABLE
+    echo   - Windows Installer: SKIPPED (Install Inno Setup 6)
 )
 echo   - Documentation: CREATED
 echo.
 echo Output Locations:
 echo   - Application: %PUBLISH_DIR%\
-echo   - Installer: build_installer\
-if %LINUX_AVAILABLE% EQU 1 (
-    echo   - Linux: %DIST_DIR%\linux\
+if exist "build_installer\LenovoLegionToolkitSetup.exe" (
+    echo   - Installer: build_installer\LenovoLegionToolkitSetup.exe
 )
-echo   - Documentation: %DIST_DIR%\BUILD_REPORT.md
+echo   - Documentation: %PUBLISH_DIR%\BUILD_INFO.md
 echo   - Build Log: %BUILD_LOG%
 echo.
-echo Legion Toolkit v6.0.0 - Production Ready
-echo Target: Legion Slim 7i Gen 9 (16IRX9)
+echo Legion Toolkit v6.0.0 - Windows Edition
+echo Platform: Windows WPF Application
 echo Repository: https://github.com/vivekchamoli/LenovoLegion7i
 echo.
 
@@ -425,7 +350,7 @@ exit /b 1
 :exit
 if %BUILD_SUCCESS% EQU 1 (
     echo Build completed successfully!
-    echo Check %DIST_DIR%\BUILD_REPORT.md for detailed information.
+    echo Check %PUBLISH_DIR%\BUILD_INFO.md for detailed information.
 ) else (
     echo Build encountered issues. Check %BUILD_LOG% for details.
 )

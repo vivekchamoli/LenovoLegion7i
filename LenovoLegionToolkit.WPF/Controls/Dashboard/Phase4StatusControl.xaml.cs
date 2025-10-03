@@ -18,8 +18,8 @@ public partial class Phase4StatusControl
 {
     private readonly AdaptiveFanCurveController? _adaptiveFanController;
     private readonly PowerUsagePredictor? _powerPredictor;
-    private readonly ISensorsController _sensorsController;
-    private readonly PowerModeFeature _powerModeFeature;
+    private readonly ISensorsController? _sensorsController;
+    private readonly PowerModeFeature? _powerModeFeature;
 
     private CancellationTokenSource? _cts;
     private Task? _refreshTask;
@@ -161,14 +161,20 @@ public partial class Phase4StatusControl
     {
         try
         {
+            if (_sensorsController == null || _powerModeFeature == null || _powerPredictor == null)
+            {
+                _aiSuggestionInfoBar.IsOpen = false;
+                return;
+            }
+
             var sensorsData = await _sensorsController.GetDataAsync();
             var currentMode = await _powerModeFeature.GetStateAsync();
-            var isOnBattery = sensorsData.IsOnBattery;
-            var cpuTemp = sensorsData.CpuTemperature?.FirstOrDefault()?.Value ?? 0;
+            var cpuTemp = sensorsData.CPU.Temperature;
             var timeOfDay = DateTime.Now.TimeOfDay;
 
-            // For demo purposes, estimate CPU usage (would need real data)
-            var cpuUsage = cpuTemp > 60 ? 80 : cpuTemp > 50 ? 50 : 30;
+            // For demo purposes, estimate CPU usage and battery status
+            var cpuUsage = sensorsData.CPU.Utilization > 0 ? sensorsData.CPU.Utilization : (cpuTemp > 60 ? 80 : cpuTemp > 50 ? 50 : 30);
+            var isOnBattery = false; // Would need BatteryFeature to get actual status
 
             var suggestion = _powerPredictor.GetPowerModeSuggestion(
                 currentMode,
@@ -200,10 +206,16 @@ public partial class Phase4StatusControl
     {
         try
         {
+            if (_sensorsController == null || _powerModeFeature == null || _adaptiveFanController == null)
+            {
+                _adaptiveFanInfoBar.IsOpen = false;
+                return;
+            }
+
             var sensorsData = await _sensorsController.GetDataAsync();
             var currentMode = await _powerModeFeature.GetStateAsync();
-            var cpuTemp = sensorsData.CpuTemperature?.FirstOrDefault()?.Value ?? 0;
-            var cpuFanSpeed = sensorsData.CpuFanSpeed?.Value ?? 0;
+            var cpuTemp = sensorsData.CPU.Temperature;
+            var cpuFanSpeed = sensorsData.CPU.FanSpeed;
 
             // For demo, calculate a simple trend (would need historical data)
             var tempTrend = cpuTemp > 70 ? 3 : cpuTemp > 60 ? 1 : cpuTemp < 45 ? -2 : 0;

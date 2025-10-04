@@ -1,17 +1,19 @@
 @echo off
-REM Legion Toolkit Windows Build Script v6.2.0
+REM Legion Toolkit Windows Build Script v6.2.1
 REM Zero-Error Zero-Warning Build Script for Windows (WPF Application)
 REM Advanced Optimizations - ALL 5 PHASES + Multi-Agent System + Dashboard UI Complete
+REM Fan Speed Fix: Full 5500 RPM capability (CPU and GPU fans)
 REM Complete error handling and validation system
 
 setlocal enabledelayedexpansion
 
 echo ==========================================
 echo Legion Toolkit Windows Build System
-echo Version: 6.2.0
+echo Version: 6.2.1
 echo Platform: Windows (WPF)
 echo Status: ZERO WARNINGS - ZERO ERRORS
 echo UI: MULTI-AGENT DASHBOARD VISIBLE
+echo Fan Control: Full 5500 RPM Support
 echo ==========================================
 echo.
 
@@ -159,6 +161,11 @@ echo   - 7-agent activity visualization
 echo   - Battery improvement tracking
 echo   - Manual controls (enable/disable, clear data)
 echo.
+echo Fan Control Enhancement (v6.2.1):
+echo   - CPU Fan: Full 5500 RPM capability (0-255 range)
+echo   - GPU Fan: Full 5500 RPM capability (0-255 range)
+echo   - Progressive fan curve: 0 to 100 percent control
+echo.
 
 echo Building Legion Toolkit for Windows...
 echo [%TIME%] Starting Windows build with Advanced Optimizations >> "%BUILD_LOG%" 2>&1
@@ -221,9 +228,10 @@ if exist "%INNO_PATH%" (
     )
 
     echo   - Source: %PUBLISH_DIR%
-    echo   - Version: 6.2.0
+    echo   - Version: 6.2.1
     echo   - All 5 phases included
     echo   - Multi-agent system integrated
+    echo   - Full fan speed control (5500 RPM)
     echo   - Build quality: ZERO WARNINGS - ZERO ERRORS
     echo.
 
@@ -236,7 +244,7 @@ if exist "%INNO_PATH%" (
         if exist "build_installer\LenovoLegionToolkitSetup.exe" (
             for %%F in ("build_installer\LenovoLegionToolkitSetup.exe") do (
                 echo   - Installer size: %%~zF bytes
-                echo   - Version: 6.2.0
+                echo   - Version: 6.2.1
                 echo [%TIME%] Installer size: %%~zF bytes >> "%BUILD_LOG%" 2>&1
             )
         ) else (
@@ -330,6 +338,12 @@ echo   - Battery improvement tracking (+70%%)
 echo   - 7-agent activity visualization
 echo   - Manual controls and learning statistics
 echo.
+echo Fan Control Enhancement (v6.2.1):
+echo   - CPU and GPU fans: 5500 RPM maximum
+echo   - Fan table range: 0-255 (was incorrectly 0-10)
+echo   - Progressive curve: Silent to Maximum
+echo   - Fixed validation and UI limits
+echo.
 echo System Performance:
 echo   - Battery Life: +70%% improvement potential
 echo   - Optimization Cycle: 2 Hz (500ms)
@@ -351,9 +365,10 @@ if exist "build_installer\LenovoLegionToolkitSetup.exe" (
 )
 echo   - Build Log: %BUILD_LOG%
 echo.
-echo Legion Toolkit v6.2.0 - Windows Edition
+echo Legion Toolkit v6.2.1 - Windows Edition
 echo Platform: Windows WPF Application
 echo Multi-Agent System: ALL 5 PHASES COMPLETE
+echo Fan Control: Full 5500 RPM Support
 echo Build Quality: PRODUCTION READY (0 Warnings, 0 Errors)
 echo Repository: https://github.com/vivekchamoli/LenovoLegion7i
 echo.

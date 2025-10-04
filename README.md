@@ -366,8 +366,11 @@ CLI does not need to be ran as Administrator.
 
 ## Credits
 
+This project is a fork of [BartoszCichecki/LenovoLegionToolkit](https://github.com/BartoszCichecki/LenovoLegionToolkit) with additional AI/ML optimizations and autonomous multi-agent system features.
+
 Special thanks to:
 
+* [Bartosz Cichecki](https://github.com/BartoszCichecki), for creating the original [Lenovo Legion Toolkit](https://github.com/BartoszCichecki/LenovoLegionToolkit)
 * [ViRb3](https://github.com/ViRb3), for creating [Lenovo Controller](https://github.com/ViRb3/LenovoController), which was used as a base for this tool
 * [falahati](https://github.com/falahati), for creating [NvAPIWrapper](https://github.com/falahati/NvAPIWrapper) and [WindowsDisplayAPI](https://github.com/falahati/WindowsDisplayAPI)
 * [SmokelessCPU](https://github.com/SmokelessCPU), for help with 4-zone RGB and Sprectrum keyboard support

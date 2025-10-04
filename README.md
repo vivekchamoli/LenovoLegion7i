@@ -41,6 +41,9 @@ It runs no background services, uses less memory, uses virtually no CPU, and con
 **The tool comes with no warranty. Use at your own risk.**
 
 Please be patient and read through this readme carefully - it contains important information.
+## Credits
+
+This project is a fork of [BartoszCichecki/LenovoLegionToolkit](https://github.com/BartoszCichecki/LenovoLegionToolkit) with additional AI/ML optimizations and autonomous multi-agent system features.
 
 ## Download
 

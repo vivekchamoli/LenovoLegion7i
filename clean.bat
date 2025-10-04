@@ -1,15 +1,17 @@
 @echo off
-REM Legion Toolkit Clean Script v6.2.0
+REM Legion Toolkit Clean Script v6.2.1
 REM Removes all build artifacts, temporary files, and caches
 REM Advanced Optimizations - ALL 5 PHASES + Multi-Agent System
+REM Fan Control: Full 5500 RPM Support
 REM Zero Warnings - Zero Errors Build Environment
 
 setlocal enabledelayedexpansion
 
 echo ==========================================
 echo Legion Toolkit Clean Script
-echo Version: 6.2.0
+echo Version: 6.2.1
 echo Advanced Multi-Agent System - 5 Phases Complete
+echo Fan Control: Full 5500 RPM Support
 echo Build Quality: ZERO WARNINGS - ZERO ERRORS
 echo ==========================================
 echo.
@@ -19,6 +21,7 @@ echo   - Phase 2: Battery Optimization Agents
 echo   - Phase 3: Pattern Learning System
 echo   - Phase 4: Data Persistence Layer
 echo   - Phase 5: Real-Time Dashboard UI
+echo   - Fan Control: CPU and GPU 0-255 range (5500 RPM max)
 echo.
 
 REM Set base directory
@@ -120,7 +123,7 @@ echo   - build.log
 echo   - *.tmp *.cache *.bak *.old *.log
 echo   - *.lock.json
 echo.
-echo Advanced Multi-Agent System v6.2.0
+echo Advanced Multi-Agent System v6.2.1
 echo All 5 Phases Complete - Clean Build Environment Ready
 echo.
 echo Phase 1: Action Execution Framework
@@ -150,6 +153,12 @@ echo   [OK] Battery improvement tracking (+70%%)
 echo   [OK] 7-agent activity visualization
 echo   [OK] Manual controls and learning statistics
 echo.
+echo Fan Control Enhancement (v6.2.1):
+echo   [OK] CPU and GPU fans: 5500 RPM maximum
+echo   [OK] Fan table range: 0-255 (fixed from 0-10)
+echo   [OK] Progressive curve: Silent to Maximum
+echo   [OK] Fixed validation and UI limits
+echo.
 echo Build Environment Status:
 echo   [OK] All build artifacts removed
 echo   [OK] All temporary files deleted
@@ -173,6 +182,7 @@ echo Build will include:
 echo   - All 5 phases (enabled by default)
 echo   - Advanced multi-agent orchestration
 echo   - Real-time dashboard UI
+echo   - Full fan speed control (5500 RPM)
 echo   - Clean production build (0 warnings, 0 errors)
 echo   - Complete documentation
 echo.

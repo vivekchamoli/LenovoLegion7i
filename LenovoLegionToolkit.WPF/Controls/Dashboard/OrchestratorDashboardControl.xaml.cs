@@ -16,9 +16,11 @@ public partial class OrchestratorDashboardControl : UserControl
 {
     private OrchestratorLifecycleManager? _lifecycleManager;
     private DispatcherTimer? _updateTimer;
+    private DateTime? _calculatingStartTime;
 
     // Baseline battery life for improvement calculation (hours)
     private const double BASELINE_BATTERY_LIFE = 4.0;
+    private const int CALCULATING_TIMEOUT_SECONDS = 10;
 
     public OrchestratorDashboardControl()
     {
@@ -157,37 +159,127 @@ public partial class OrchestratorDashboardControl : UserControl
             var isOnAC = batteryInfo.IsCharging;
             var batteryPercent = batteryInfo.BatteryPercentage;
 
-            // Valid battery time available
+            // Battery is fully charged
+            if (batteryPercent == 100)
+            {
+                _batteryPredictionText.Text = "Full";
+                _batteryPredictionText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#10B981"));
+                _calculatingStartTime = null;
+                return;
+            }
+
+            // On AC adapter - show N/A
+            if (isOnAC)
+            {
+                _batteryPredictionText.Text = "N/A";
+                _batteryPredictionText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6B7280"));
+                _calculatingStartTime = null;
+                return;
+            }
+
+            // Valid Windows battery time available
             if (remainingMinutes > 0 && remainingMinutes < 1000)
             {
                 var hours = remainingMinutes / 60;
                 var minutes = remainingMinutes % 60;
                 _batteryPredictionText.Text = $"{hours}h {minutes}m";
                 _batteryPredictionText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#10B981"));
+                _calculatingStartTime = null;
+                return;
             }
-            // Battery is fully charged
-            else if (batteryPercent == 100)
+
+            // On battery but Windows doesn't have time - calculate manually using discharge rate
+            if (!isOnAC && batteryPercent > 0 && batteryPercent < 100)
             {
-                _batteryPredictionText.Text = "Full";
-                _batteryPredictionText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#10B981"));
+                // Try to calculate based on discharge rate
+                var estimatedMinutes = CalculateBatteryTimeFromDischargeRate(batteryInfo);
+
+                if (estimatedMinutes > 0)
+                {
+                    // We have a valid calculation based on discharge rate
+                    var hours = estimatedMinutes / 60;
+                    var minutes = estimatedMinutes % 60;
+                    _batteryPredictionText.Text = $"{hours}h {minutes}m";
+                    _batteryPredictionText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#10B981"));
+                    _calculatingStartTime = null;
+                }
+                else
+                {
+                    // No discharge rate available yet - show "Calculating..." with timeout
+                    if (_calculatingStartTime == null)
+                        _calculatingStartTime = DateTime.Now;
+
+                    var calculatingDuration = (DateTime.Now - _calculatingStartTime.Value).TotalSeconds;
+
+                    if (calculatingDuration < CALCULATING_TIMEOUT_SECONDS)
+                    {
+                        _batteryPredictionText.Text = "Calculating...";
+                        _batteryPredictionText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F59E0B"));
+                    }
+                    else
+                    {
+                        // Timeout exceeded - estimate based on battery percentage
+                        var estimatedHours = (batteryPercent / 100.0) * BASELINE_BATTERY_LIFE;
+                        var estHours = (int)estimatedHours;
+                        var estMinutes = (int)((estimatedHours - estHours) * 60);
+                        _batteryPredictionText.Text = $"~{estHours}h {estMinutes}m";
+                        _batteryPredictionText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F59E0B"));
+                    }
+                }
+                return;
             }
-            // On battery but Windows is still calculating (shows "Calculating..." instead of "N/A")
-            else if (!isOnAC && batteryPercent > 0 && batteryPercent < 100 && (remainingMinutes <= 0 || remainingMinutes >= 1000))
-            {
-                _batteryPredictionText.Text = "Calculating...";
-                _batteryPredictionText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F59E0B"));
-            }
-            // On AC adapter or invalid state
-            else
-            {
-                _batteryPredictionText.Text = "N/A";
-                _batteryPredictionText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6B7280"));
-            }
+
+            // Fallback - invalid state
+            _batteryPredictionText.Text = "N/A";
+            _batteryPredictionText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6B7280"));
+            _calculatingStartTime = null;
         }
         catch
         {
             _batteryPredictionText.Text = "N/A";
             _batteryPredictionText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6B7280"));
+            _calculatingStartTime = null;
+        }
+    }
+
+    /// <summary>
+    /// Calculate battery remaining time based on discharge rate and remaining capacity
+    /// This provides instant accurate predictions without waiting for Windows
+    /// </summary>
+    private int CalculateBatteryTimeFromDischargeRate(Lib.BatteryInformation batteryInfo)
+    {
+        try
+        {
+            var dischargeRate = Math.Abs(batteryInfo.DischargeRate); // mW (negative when discharging)
+            var remainingCapacity = batteryInfo.EstimateChargeRemaining; // mWh
+
+            // Discharge rate must be valid and non-zero
+            if (dischargeRate < 100 || dischargeRate > 200000) // Sanity check (0.1W to 200W)
+                return 0;
+
+            // Remaining capacity must be valid
+            if (remainingCapacity < 100 || remainingCapacity > 200000) // Sanity check
+                return 0;
+
+            // Calculate remaining time in hours, then convert to minutes
+            // Time (hours) = Energy (mWh) / Power (mW)
+            var remainingHours = (double)remainingCapacity / (double)dischargeRate;
+            var remainingMinutes = (int)(remainingHours * 60.0);
+
+            // Sanity check the result
+            if (remainingMinutes < 1 || remainingMinutes > 1200) // 1 min to 20 hours
+                return 0;
+
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Battery calculation: {remainingCapacity}mWh / {dischargeRate}mW = {remainingMinutes} minutes");
+
+            return remainingMinutes;
+        }
+        catch (Exception ex)
+        {
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Failed to calculate battery time from discharge rate", ex);
+            return 0;
         }
     }
 
@@ -199,6 +291,7 @@ public partial class OrchestratorDashboardControl : UserControl
             var batteryInfo = Lib.System.Battery.GetBatteryInformation();
             var remainingMinutes = batteryInfo.BatteryLifeRemaining;
 
+            // Try Windows value first
             if (remainingMinutes > 0 && remainingMinutes < 1000)
             {
                 var currentHours = remainingMinutes / 60.0;
@@ -206,7 +299,16 @@ public partial class OrchestratorDashboardControl : UserControl
                 return Math.Max(0, Math.Min(100, improvement)); // Clamp between 0-100%
             }
 
-            // Default estimate
+            // Try manual calculation based on discharge rate
+            var estimatedMinutes = CalculateBatteryTimeFromDischargeRate(batteryInfo);
+            if (estimatedMinutes > 0)
+            {
+                var currentHours = estimatedMinutes / 60.0;
+                var improvement = ((currentHours - BASELINE_BATTERY_LIFE) / BASELINE_BATTERY_LIFE) * 100;
+                return Math.Max(0, Math.Min(100, improvement)); // Clamp between 0-100%
+            }
+
+            // Default estimate when no data available
             return 70.0;
         }
         catch

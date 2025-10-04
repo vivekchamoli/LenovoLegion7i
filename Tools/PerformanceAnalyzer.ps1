@@ -303,7 +303,7 @@ Write-Host @"
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
 ║   PERFORMANCE ANALYZER                                    ║
-║   Elite Optimizations Validation Tool                    ║
+║   Advanced Multi-Agent System Validation Tool            ║
 ║                                                           ║
 ╚═══════════════════════════════════════════════════════════╝
 

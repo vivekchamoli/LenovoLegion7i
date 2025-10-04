@@ -1,6 +1,6 @@
-# Elite Optimizations Deployment Script
+# Advanced Multi-Agent System Deployment Script
 # Version: 1.0.0
-# Description: Automated deployment and rollback for elite optimizations
+# Description: Automated deployment and rollback for advanced multi-agent system
 
 param(
     [Parameter(Mandatory=$false)]
@@ -32,10 +32,10 @@ function Show-Banner {
 
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
-║   ELITE OPTIMIZATIONS DEPLOYMENT                         ║
+║   ADVANCED MULTI-AGENT SYSTEM DEPLOYMENT                 ║
 ║   Lenovo Legion Toolkit - Performance Edition            ║
 ║                                                           ║
-║   Version: 1.0.0-elite                                    ║
+║   Version: 1.0.0                                          ║
 ║   Status: Ready for Production                           ║
 ║                                                           ║
 ╚═══════════════════════════════════════════════════════════╝
@@ -100,10 +100,10 @@ function Deploy-Optimizations {
     $branches = @()
 
     switch ($DeployPhase) {
-        "phase1" { $branches = @("feature/elite-optimization-phase1") }
-        "phase2" { $branches = @("feature/elite-optimization-phase1", "feature/elite-optimization-phase2") }
-        "phase3" { $branches = @("feature/elite-optimization-phase1", "feature/elite-optimization-phase2", "feature/elite-optimization-phase3") }
-        "all"    { $branches = @("release/elite-optimizations-v1.0") }
+        "phase1" { $branches = @("feature/advanced-optimization-phase1") }
+        "phase2" { $branches = @("feature/advanced-optimization-phase1", "feature/advanced-optimization-phase2") }
+        "phase3" { $branches = @("feature/advanced-optimization-phase1", "feature/advanced-optimization-phase2", "feature/advanced-optimization-phase3") }
+        "all"    { $branches = @("release/advanced-optimizations-v1.0") }
     }
 
     if ($DryRun) {
@@ -163,7 +163,7 @@ function Build-And-Test {
     }
 
     Write-Info "  → Building Release configuration..."
-    $buildOutput = dotnet build --configuration Release "-p:Version=1.0.0-elite" 2>&1
+    $buildOutput = dotnet build --configuration Release "-p:Version=1.0.0" 2>&1
 
     if ($LASTEXITCODE -ne 0) {
         Write-Error "Build failed!"
@@ -189,11 +189,11 @@ function Invoke-Rollback {
     Write-Info "`n[ROLLBACK] Rolling back optimizations..."
 
     if ($DryRun) {
-        Write-Warning "  [DRY RUN] Would checkout backup/pre-elite-optimization"
+        Write-Warning "  [DRY RUN] Would checkout backup/pre-advanced-optimization"
         return
     }
 
-    git checkout backup/pre-elite-optimization 2>&1 | Out-Null
+    git checkout backup/pre-advanced-optimization 2>&1 | Out-Null
     if ($LASTEXITCODE -eq 0) {
         Write-Success "  ✓ Rolled back to pre-optimization state"
 
@@ -284,7 +284,7 @@ switch ($Action) {
         Write-Success "║  DEPLOYMENT SUCCESSFUL!                    ║"
         Write-Success "╚════════════════════════════════════════════╝"
         Write-Info "`nBackup created at: $backupBranch"
-        Write-Info "To rollback: .\deploy-elite-optimizations.ps1 -Action rollback`n"
+        Write-Info "To rollback: .\deploy-advanced-optimizations.ps1 -Action rollback`n"
     }
 
     "rollback" {
@@ -310,15 +310,15 @@ if ($Action -eq "status") {
     Write-Info "USAGE EXAMPLES:"
     Write-Host ""
     Write-Host "  Deploy Phase 1 only:" -ForegroundColor Yellow
-    Write-Host "    .\deploy-elite-optimizations.ps1 -Action deploy -Phase phase1"
+    Write-Host "    .\deploy-advanced-optimizations.ps1 -Action deploy -Phase phase1"
     Write-Host ""
     Write-Host "  Deploy all phases:" -ForegroundColor Yellow
-    Write-Host "    .\deploy-elite-optimizations.ps1 -Action deploy -Phase all"
+    Write-Host "    .\deploy-advanced-optimizations.ps1 -Action deploy -Phase all"
     Write-Host ""
     Write-Host "  Dry run (preview changes):" -ForegroundColor Yellow
-    Write-Host "    .\deploy-elite-optimizations.ps1 -Action deploy -DryRun"
+    Write-Host "    .\deploy-advanced-optimizations.ps1 -Action deploy -DryRun"
     Write-Host ""
     Write-Host "  Rollback optimizations:" -ForegroundColor Yellow
-    Write-Host "    .\deploy-elite-optimizations.ps1 -Action rollback"
+    Write-Host "    .\deploy-advanced-optimizations.ps1 -Action rollback"
     Write-Host ""
 }

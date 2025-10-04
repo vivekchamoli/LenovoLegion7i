@@ -1,11 +1,11 @@
 # Changelog
 
-All notable changes to the Legion Toolkit Elite Enhancement Framework will be documented in this file.
+All notable changes to the Legion Toolkit Advanced Enhancement Framework will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v6.0.0] - 2024-09-22 - Legion Toolkit Elite Enhancement Framework
+## [v6.0.0] - 2024-09-22 - Legion Toolkit Advanced Enhancement Framework
 
 ### 🎯 Major Release: Complete Legion Slim 7i Gen 9 (16IRX9) Optimization
 
@@ -173,7 +173,7 @@ For changelog entries from previous versions (v2.26.1 and earlier), please refer
 
 ---
 
-**Version**: Legion Toolkit Elite Enhancement Framework v6.0
+**Version**: Legion Toolkit Advanced Enhancement Framework v6.0
 **Release Date**: September 22, 2024
 **Target Hardware**: Legion Slim 7i Gen 9 (16IRX9)
 **Status**: Production Ready

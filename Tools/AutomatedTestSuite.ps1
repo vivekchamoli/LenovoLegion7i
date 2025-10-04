@@ -1,4 +1,4 @@
-# Elite Optimizations - Automated Test Suite
+# Advanced Multi-Agent System - Automated Test Suite
 # Comprehensive validation of all optimization phases
 
 param(

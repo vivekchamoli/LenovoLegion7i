@@ -16,7 +16,7 @@ namespace LenovoLegionToolkit.Lib.Controllers;
 /// </summary>
 public class Gen9ECController
 {
-    // Gen 9 specific EC registers as per agentic_elite_context_engineering.md
+    // Gen 9 specific EC registers for hardware control
     private readonly Dictionary<string, byte> Gen9Registers = new()
     {
         // Performance Control (NEW for Gen 9)

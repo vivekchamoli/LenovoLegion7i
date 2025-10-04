@@ -1,6 +1,6 @@
-# 🚀 START HERE - Elite Optimizations v1.0.0
+# 🚀 START HERE - Advanced Optimizations v1.0.0
 
-> **Welcome to the Elite Optimizations Complete Package**
+> **Welcome to the Advanced Optimizations Complete Package**
 >
 > *Your guide to 94% performance improvement for Lenovo Legion Toolkit*
 
@@ -8,7 +8,7 @@
 
 ## 🎯 WHAT IS THIS?
 
-The **Elite Optimizations** package is a comprehensive performance upgrade for the Lenovo Legion Toolkit that delivers:
+The **Advanced Optimizations** package is a comprehensive performance upgrade for the Lenovo Legion Toolkit that delivers:
 
 - ⚡ **94% faster** critical operations
 - 🔋 **12% longer** battery life
@@ -141,7 +141,7 @@ The **Elite Optimizations** package is a comprehensive performance upgrade for t
 
 | Tool | Purpose | Usage |
 |------|---------|-------|
-| **deploy-elite-optimizations.ps1** | Automated deployment | `.\deploy-elite-optimizations.ps1 -Action deploy -Phase all` |
+| **deploy-advanced-optimizations.ps1** | Automated deployment | `.\deploy-advanced-optimizations.ps1 -Action deploy -Phase all` |
 | **Tools/AutomatedTestSuite.ps1** | Comprehensive testing | `.\Tools\AutomatedTestSuite.ps1 -TestScope all` |
 | **Tools/PerformanceAnalyzer.ps1** | Performance benchmarking | `.\Tools\PerformanceAnalyzer.ps1 -Mode benchmark` |
 | **Tools/BenchmarkComparison.ps1** | Visual analytics | `.\Tools\BenchmarkComparison.ps1` |
@@ -169,11 +169,11 @@ The **Elite Optimizations** package is a comprehensive performance upgrade for t
 
 | Branch | Purpose | Status |
 |--------|---------|--------|
-| `backup/pre-elite-optimization` | Rollback point | ✅ Ready |
-| `feature/elite-optimization-phase1` | Phase 1 only | ✅ Complete |
-| `feature/elite-optimization-phase2` | Phase 2 only | ✅ Complete |
-| `feature/elite-optimization-phase3` | Phase 3 only | ✅ Complete |
-| `release/elite-optimizations-v1.0` | **Complete package** | ✅ Deploy this ⭐ |
+| `backup/pre-advanced-optimization` | Rollback point | ✅ Ready |
+| `feature/advanced-optimization-phase1` | Phase 1 only | ✅ Complete |
+| `feature/advanced-optimization-phase2` | Phase 2 only | ✅ Complete |
+| `feature/advanced-optimization-phase3` | Phase 3 only | ✅ Complete |
+| `release/advanced-optimizations-v1.0` | **Complete package** | ✅ Deploy this ⭐ |
 
 ---
 
@@ -183,10 +183,10 @@ The **Elite Optimizations** package is a comprehensive performance upgrade for t
 
 ```powershell
 # 1. Check status
-.\deploy-elite-optimizations.ps1 -Action status
+.\deploy-advanced-optimizations.ps1 -Action status
 
 # 2. Deploy all optimizations
-.\deploy-elite-optimizations.ps1 -Action deploy -Phase all
+.\deploy-advanced-optimizations.ps1 -Action deploy -Phase all
 
 # 3. Run tests
 .\Tools\AutomatedTestSuite.ps1 -TestScope all
@@ -206,21 +206,21 @@ The **Elite Optimizations** package is a comprehensive performance upgrade for t
 
 #### **Week 1: Phase 1**
 ```powershell
-.\deploy-elite-optimizations.ps1 -Action deploy -Phase phase1
+.\deploy-advanced-optimizations.ps1 -Action deploy -Phase phase1
 .\Tools\AutomatedTestSuite.ps1 -TestScope phase1
 ```
 **Results**: 94% faster power mode, 0 memory leaks
 
 #### **Week 2: Phase 2**
 ```powershell
-.\deploy-elite-optimizations.ps1 -Action deploy -Phase phase2
+.\deploy-advanced-optimizations.ps1 -Action deploy -Phase phase2
 .\Tools\AutomatedTestSuite.ps1 -TestScope phase2
 ```
 **Results**: 67% faster RGB, parallel operations
 
 #### **Week 3: Phase 3**
 ```powershell
-.\deploy-elite-optimizations.ps1 -Action deploy -Phase all
+.\deploy-advanced-optimizations.ps1 -Action deploy -Phase all
 .\Tools\AutomatedTestSuite.ps1 -TestScope all
 .\Tools\BenchmarkComparison.ps1
 ```
@@ -253,7 +253,7 @@ The **Elite Optimizations** package is a comprehensive performance upgrade for t
 
 1. **Instant Rollback** - < 30 seconds
    ```powershell
-   .\deploy-elite-optimizations.ps1 -Action rollback
+   .\deploy-advanced-optimizations.ps1 -Action rollback
    ```
 
 2. **Feature Flags** - Zero-downtime toggle
@@ -264,7 +264,7 @@ The **Elite Optimizations** package is a comprehensive performance upgrade for t
 
 3. **Dry-Run Mode** - Preview before deploy
    ```powershell
-   .\deploy-elite-optimizations.ps1 -Action deploy -Phase all -DryRun
+   .\deploy-advanced-optimizations.ps1 -Action deploy -Phase all -DryRun
    ```
 
 4. **Automated Backup** - Created automatically
@@ -357,14 +357,14 @@ The **Elite Optimizations** package is a comprehensive performance upgrade for t
 
 **Scenario 1: Need to rollback immediately**
 ```powershell
-.\deploy-elite-optimizations.ps1 -Action rollback
+.\deploy-advanced-optimizations.ps1 -Action rollback
 ```
 **Time**: < 30 seconds
 
 ---
 
 **Scenario 2: Performance not improved**
-1. Check feature flags: `.\deploy-elite-optimizations.ps1 -Action status`
+1. Check feature flags: `.\deploy-advanced-optimizations.ps1 -Action status`
 2. Verify Release build deployed (not Debug)
 3. Run validation: `.\Tools\PerformanceAnalyzer.ps1 -Mode benchmark`
 4. See: [PRODUCTION_DEPLOYMENT_GUIDE.md](PRODUCTION_DEPLOYMENT_GUIDE.md) - Troubleshooting
@@ -398,7 +398,7 @@ See: [PRODUCTION_DEPLOYMENT_GUIDE.md](PRODUCTION_DEPLOYMENT_GUIDE.md) - Common I
 ### **Tools**
 ```powershell
 # Deployment
-.\deploy-elite-optimizations.ps1 -Action status
+.\deploy-advanced-optimizations.ps1 -Action status
 
 # Testing
 .\Tools\AutomatedTestSuite.ps1 -TestScope all
@@ -483,14 +483,14 @@ explorer "%LOCALAPPDATA%\LenovoLegionToolkit\log"
 
 ```powershell
 # Week 1: Deploy Phase 1 (Proven safe, massive gains)
-.\deploy-elite-optimizations.ps1 -Action deploy -Phase phase1
+.\deploy-advanced-optimizations.ps1 -Action deploy -Phase phase1
 .\Tools\AutomatedTestSuite.ps1 -TestScope phase1
 
 # Week 2: Deploy Phase 2 (if Phase 1 stable)
-.\deploy-elite-optimizations.ps1 -Action deploy -Phase phase2
+.\deploy-advanced-optimizations.ps1 -Action deploy -Phase phase2
 
 # Week 3: Deploy Phase 3 (complete deployment)
-.\deploy-elite-optimizations.ps1 -Action deploy -Phase all
+.\deploy-advanced-optimizations.ps1 -Action deploy -Phase all
 .\Tools\BenchmarkComparison.ps1
 ```
 
@@ -508,7 +508,7 @@ explorer "%LOCALAPPDATA%\LenovoLegionToolkit\log"
 
 ---
 
-**🎉 ELITE OPTIMIZATIONS v1.0.0 - COMPLETE PACKAGE**
+**🎉 ADVANCED OPTIMIZATIONS v1.0.0 - COMPLETE PACKAGE**
 
 *94% faster. 12% longer battery. Zero compromises.*
 *Fully documented. Thoroughly tested. Production ready.*

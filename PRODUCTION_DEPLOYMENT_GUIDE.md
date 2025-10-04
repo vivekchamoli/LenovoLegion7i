@@ -1,4 +1,4 @@
-# 🚀 PRODUCTION DEPLOYMENT GUIDE - Elite Optimizations
+# 🚀 PRODUCTION DEPLOYMENT GUIDE - Advanced Optimizations
 
 **Version**: 1.0.0-elite
 **Release Date**: 2025-10-03
@@ -34,7 +34,7 @@
 
 ```powershell
 # Deploy all optimizations at once
-.\deploy-elite-optimizations.ps1 -Action deploy -Phase all
+.\deploy-advanced-optimizations.ps1 -Action deploy -Phase all
 ```
 
 **Pros**:
@@ -57,7 +57,7 @@
 #### **Week 1: Phase 1 (Critical Fixes)**
 ```powershell
 # Deploy Phase 1 only
-.\deploy-elite-optimizations.ps1 -Action deploy -Phase phase1
+.\deploy-advanced-optimizations.ps1 -Action deploy -Phase phase1
 ```
 
 **What's Included**:
@@ -83,7 +83,7 @@
 #### **Week 2: Phase 2 (Structural)**
 ```powershell
 # Deploy Phase 1 + 2
-.\deploy-elite-optimizations.ps1 -Action deploy -Phase phase2
+.\deploy-advanced-optimizations.ps1 -Action deploy -Phase phase2
 ```
 
 **What's Added**:
@@ -104,7 +104,7 @@
 #### **Week 3-4: Phase 3 (Infrastructure)**
 ```powershell
 # Deploy all phases
-.\deploy-elite-optimizations.ps1 -Action deploy -Phase all
+.\deploy-advanced-optimizations.ps1 -Action deploy -Phase all
 ```
 
 **What's Added**:
@@ -133,9 +133,9 @@
 
 #### **Step 1: Deploy Code (All Phases)**
 ```powershell
-.\deploy-elite-optimizations.ps1 -Action deploy -Phase all -DryRun
+.\deploy-advanced-optimizations.ps1 -Action deploy -Phase all -DryRun
 # Review changes, then:
-.\deploy-elite-optimizations.ps1 -Action deploy -Phase all
+.\deploy-advanced-optimizations.ps1 -Action deploy -Phase all
 ```
 
 #### **Step 2: Enable Features Gradually**
@@ -166,7 +166,7 @@ set LLT_FEATURE_MLAICONTROLLER=true   # (Phase 4)
 
 ### **Quick Status Check**
 ```powershell
-.\deploy-elite-optimizations.ps1 -Action status
+.\deploy-advanced-optimizations.ps1 -Action status
 ```
 
 **Output**:
@@ -178,7 +178,7 @@ set LLT_FEATURE_MLAICONTROLLER=true   # (Phase 4)
 
 ### **Dry Run (Preview Changes)**
 ```powershell
-.\deploy-elite-optimizations.ps1 -Action deploy -Phase all -DryRun
+.\deploy-advanced-optimizations.ps1 -Action deploy -Phase all -DryRun
 ```
 
 **Shows**: What would be changed without making changes
@@ -187,7 +187,7 @@ set LLT_FEATURE_MLAICONTROLLER=true   # (Phase 4)
 
 ### **Deploy Phase 1**
 ```powershell
-.\deploy-elite-optimizations.ps1 -Action deploy -Phase phase1
+.\deploy-advanced-optimizations.ps1 -Action deploy -Phase phase1
 ```
 
 **What Happens**:
@@ -202,7 +202,7 @@ set LLT_FEATURE_MLAICONTROLLER=true   # (Phase 4)
 
 ### **Deploy All Phases**
 ```powershell
-.\deploy-elite-optimizations.ps1 -Action deploy -Phase all
+.\deploy-advanced-optimizations.ps1 -Action deploy -Phase all
 ```
 
 **What Happens**: Same as Phase 1, but includes all optimizations
@@ -211,11 +211,11 @@ set LLT_FEATURE_MLAICONTROLLER=true   # (Phase 4)
 
 ### **Rollback (Emergency)**
 ```powershell
-.\deploy-elite-optimizations.ps1 -Action rollback
+.\deploy-advanced-optimizations.ps1 -Action rollback
 ```
 
 **What Happens**:
-1. ✅ Checkout `backup/pre-elite-optimization`
+1. ✅ Checkout `backup/pre-advanced-optimization`
 2. ✅ Clear all feature flags
 3. ✅ Return to pre-optimization state
 
@@ -318,7 +318,7 @@ set LLT_FEATURE_WMICACHE=false
 
 **If not resolved**:
 ```powershell
-.\deploy-elite-optimizations.ps1 -Action rollback
+.\deploy-advanced-optimizations.ps1 -Action rollback
 ```
 
 ---
@@ -330,7 +330,7 @@ set LLT_FEATURE_WMICACHE=false
 **Immediate Action**:
 ```powershell
 # Full rollback
-.\deploy-elite-optimizations.ps1 -Action rollback
+.\deploy-advanced-optimizations.ps1 -Action rollback
 ```
 
 **Time to Rollback**: < 1 minute
@@ -359,7 +359,7 @@ set LLT_FEATURE_WMICACHE=false
 ```powershell
 # Check if dispatcher-related
 # Rollback Phase 1
-git checkout backup/pre-elite-optimization
+git checkout backup/pre-advanced-optimization
 # Or disable GPU rendering
 set LLT_FEATURE_GPURENDERING=false
 ```
@@ -542,26 +542,26 @@ Expected 65% faster but seeing minimal gains
 ### **For Staging/Test Environments**:
 ```powershell
 # All at once
-.\deploy-elite-optimizations.ps1 -Action deploy -Phase all
+.\deploy-advanced-optimizations.ps1 -Action deploy -Phase all
 ```
 
 ### **For Production**:
 
 #### **Week 1**: Phase 1
 ```powershell
-.\deploy-elite-optimizations.ps1 -Action deploy -Phase phase1
+.\deploy-advanced-optimizations.ps1 -Action deploy -Phase phase1
 ```
 **Validate**: Power mode speed, UI smoothness, memory stability
 
 #### **Week 2**: Phase 2
 ```powershell
-.\deploy-elite-optimizations.ps1 -Action deploy -Phase phase2
+.\deploy-advanced-optimizations.ps1 -Action deploy -Phase phase2
 ```
 **Validate**: RGB operations, no regressions
 
 #### **Week 3**: Phase 3
 ```powershell
-.\deploy-elite-optimizations.ps1 -Action deploy -Phase all
+.\deploy-advanced-optimizations.ps1 -Action deploy -Phase all
 ```
 **Validate**: Telemetry working, feature flags functional
 

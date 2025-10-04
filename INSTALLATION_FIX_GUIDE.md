@@ -34,7 +34,7 @@
 ```diff
 #ifndef MyAppVersion
 -  #define MyAppVersion "6.0.0"
-+  #define MyAppVersion "6.0.0-elite-phase4"
++  #define MyAppVersion "6.0.0-advanced-phase4"
 #endif
 ```
 
@@ -202,13 +202,13 @@ Right-click LenovoLegionToolkitSetup.exe → Run as administrator
 5. **Verify** installation
    - Check Start Menu for "Lenovo Legion Toolkit"
    - Run the application
-   - Verify Elite Optimizations are active
+   - Verify Advanced Optimizations are active
 
 ---
 
 ## ✅ POST-INSTALLATION VERIFICATION
 
-### **Check Elite Optimizations**
+### **Check Advanced Optimizations**
 
 **View Feature Flags** (if telemetry enabled):
 ```powershell
@@ -243,7 +243,7 @@ LLT_FEATURE_OBJECTPOOLING=false (or null)
 C:\Users\Legion7\AppData\Local\Programs\LenovoLegionToolkit\
 ├── Lenovo Legion Toolkit.exe          ← Main executable
 ├── Lenovo Legion Toolkit.dll
-├── LenovoLegionToolkit.Lib.dll        ← Elite optimizations
+├── LenovoLegionToolkit.Lib.dll        ← advanced optimizations
 ├── LenovoLegionToolkit.Lib.Automation.dll
 ├── LenovoLegionToolkit.Lib.Macro.dll
 ├── AsyncLock.dll
@@ -293,7 +293,7 @@ C:\Users\Legion7\AppData\Local\Programs\LenovoLegionToolkit\
 - [ ] Install new version as Administrator
 - [ ] Verify exe exists in installation directory
 - [ ] Launch application successfully
-- [ ] Check Elite Optimizations are active
+- [ ] Check Advanced Optimizations are active
 - [ ] Test basic functionality (power modes, RGB, etc.)
 
 ---
@@ -305,7 +305,7 @@ C:\Users\Legion7\AppData\Local\Programs\LenovoLegionToolkit\
 ✅ All DLLs and language folders present
 ✅ Start Menu shortcut works
 ✅ Desktop shortcut works (if created)
-✅ Elite Optimizations active (check BUILD_INFO.md)
+✅ Advanced Optimizations active (check BUILD_INFO.md)
 
 ---
 
@@ -320,9 +320,9 @@ C:\Users\Legion7\AppData\Local\Programs\LenovoLegionToolkit\
 
 ---
 
-**Fix Applied By**: Elite Context Engineering
+**Fix Applied By**: Advanced Context Engineering
 **Date**: October 3, 2025
-**Version**: 6.0.0-elite-phase4
+**Version**: 6.0.0-advanced-phase4
 **Status**: ✅ RESOLVED
 
 ✅ **INSTALLATION ISSUE FIXED - REBUILD INSTALLER TO APPLY**

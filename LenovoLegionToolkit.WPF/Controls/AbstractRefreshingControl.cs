@@ -47,7 +47,21 @@ public abstract class AbstractRefreshingControl : UserControl
             if (DisablesWhileRefreshing)
                 IsEnabled = false;
 
-            _refreshTask ??= OnRefreshAsync();
+            // Wait for any in-progress refresh to complete first
+            if (_refreshTask is not null)
+            {
+                try
+                {
+                    await _refreshTask;
+                }
+                catch
+                {
+                    // Ignore exceptions from previous refresh
+                }
+            }
+
+            // Start a new refresh with fresh data
+            _refreshTask = OnRefreshAsync();
             await _refreshTask;
         }
         catch (NotSupportedException)

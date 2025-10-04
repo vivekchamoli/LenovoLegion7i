@@ -1,0 +1,296 @@
+<UserControl
+    x:Class="LenovoLegionToolkit.WPF.Controls.Dashboard.OrchestratorDashboardControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:custom="clr-namespace:LenovoLegionToolkit.WPF.Controls.Custom"
+    xmlns:wpfui="http://schemas.lepo.co/wpfui/2022/xaml">
+
+    <custom:CardControl Margin="0,0,0,16" Icon="Settings24">
+        <custom:CardControl.Header>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <TextBlock FontWeight="SemiBold" FontSize="16" Text="Autonomous Multi-Agent System" />
+                    <TextBlock
+                        Margin="0,2,0,0"
+                        FontSize="11"
+                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                        Text="7 agents optimizing battery life with pattern learning"
+                        TextWrapping="Wrap" />
+                </StackPanel>
+
+                <!-- Status Badge -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="16,0,0,0">
+                    <Border x:Name="_statusBadge" Padding="12,6" Background="#10B981" CornerRadius="4">
+                        <StackPanel Orientation="Horizontal">
+                            <wpfui:SymbolIcon FontSize="14" Symbol="CheckmarkCircle24" Foreground="White" Margin="0,0,6,0" />
+                            <TextBlock x:Name="_statusText" FontSize="11" FontWeight="SemiBold" Foreground="White" Text="RUNNING" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </custom:CardControl.Header>
+
+        <StackPanel Margin="0,4,0,4">
+
+            <!-- Real-Time Metrics (Top Row) -->
+            <Grid Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Uptime -->
+                <Border Grid.Column="0" Padding="12,8" Margin="0,0,4,0" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" CornerRadius="6">
+                    <StackPanel>
+                        <TextBlock FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="UPTIME" HorizontalAlignment="Center" />
+                        <TextBlock x:Name="_uptimeText" FontSize="16" FontWeight="Bold" Text="--:--:--" HorizontalAlignment="Center" Margin="0,4,0,0" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Optimization Cycles -->
+                <Border Grid.Column="1" Padding="12,8" Margin="4,0,4,0" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" CornerRadius="6">
+                    <StackPanel>
+                        <TextBlock FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="CYCLES" HorizontalAlignment="Center" />
+                        <TextBlock x:Name="_cyclesText" FontSize="16" FontWeight="Bold" Text="0" HorizontalAlignment="Center" Margin="0,4,0,0" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Actions Executed -->
+                <Border Grid.Column="2" Padding="12,8" Margin="4,0,4,0" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" CornerRadius="6">
+                    <StackPanel>
+                        <TextBlock FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="ACTIONS" HorizontalAlignment="Center" />
+                        <TextBlock x:Name="_actionsText" FontSize="16" FontWeight="Bold" Text="0" HorizontalAlignment="Center" Margin="0,4,0,0" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Battery Prediction -->
+                <Border Grid.Column="3" Padding="12,8" Margin="4,0,0,0" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" CornerRadius="6">
+                    <StackPanel>
+                        <TextBlock FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="BATTERY LIFE" HorizontalAlignment="Center" />
+                        <TextBlock x:Name="_batteryPredictionText" FontSize="16" FontWeight="Bold" Foreground="#10B981" Text="--:--" HorizontalAlignment="Center" Margin="0,4,0,0" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- Battery Improvement Banner -->
+            <Border x:Name="_batteryImprovementBanner" Padding="12,8" Margin="0,0,0,12" Background="#1010B981" BorderBrush="#10B981" BorderThickness="1" CornerRadius="6">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <wpfui:SymbolIcon Grid.Column="0" FontSize="18" Symbol="Battery1024" Foreground="#10B981" Margin="0,0,12,0" />
+
+                    <StackPanel Grid.Column="1">
+                        <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#10B981" Text="Battery Life Improvement" />
+                        <TextBlock FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="Compared to baseline performance" Margin="0,2,0,0" />
+                    </StackPanel>
+
+                    <TextBlock x:Name="_batteryImprovementText" Grid.Column="2" FontSize="24" FontWeight="Bold" Foreground="#10B981" Text="+70%" VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+
+            <!-- Agent Status Grid -->
+            <Expander Margin="0,0,0,8" IsExpanded="True">
+                <Expander.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <wpfui:SymbolIcon Margin="0,0,8,0" FontSize="16" Foreground="#6366F1" Symbol="Organization24" />
+                        <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="7 Autonomous Agents" />
+                        <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}">
+                            <Run Text="(" />
+                            <Run x:Name="_activeAgentCountText" Text="7/7" />
+                            <Run Text=" active)" />
+                        </TextBlock>
+                    </StackPanel>
+                </Expander.Header>
+
+                <Grid Margin="24,8,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <!-- ThermalAgent -->
+                    <wpfui:SymbolIcon x:Name="_thermalAgentIcon" Grid.Row="0" Grid.Column="0" Margin="0,0,8,6" FontSize="14" Symbol="Temperature24" />
+                    <TextBlock Grid.Row="0" Grid.Column="1" Margin="0,0,8,6" VerticalAlignment="Center" FontSize="11" Text="Thermal Agent" />
+                    <TextBlock x:Name="_thermalAgentActivity" Grid.Row="0" Grid.Column="2" Margin="0,0,12,6" VerticalAlignment="Center" FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="Monitoring temps..." />
+                    <wpfui:Badge x:Name="_thermalAgentBadge" Grid.Row="0" Grid.Column="3" Margin="0,0,0,6" Appearance="Success">
+                        <TextBlock Text="Active" FontSize="9" />
+                    </wpfui:Badge>
+
+                    <!-- PowerAgent -->
+                    <wpfui:SymbolIcon x:Name="_powerAgentIcon" Grid.Row="1" Grid.Column="0" Margin="0,0,8,6" FontSize="14" Symbol="Flash24" />
+                    <TextBlock Grid.Row="1" Grid.Column="1" Margin="0,0,8,6" VerticalAlignment="Center" FontSize="11" Text="Power Agent" />
+                    <TextBlock x:Name="_powerAgentActivity" Grid.Row="1" Grid.Column="2" Margin="0,0,12,6" VerticalAlignment="Center" FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="Optimizing PL..." />
+                    <wpfui:Badge x:Name="_powerAgentBadge" Grid.Row="1" Grid.Column="3" Margin="0,0,0,6" Appearance="Success">
+                        <TextBlock Text="Active" FontSize="9" />
+                    </wpfui:Badge>
+
+                    <!-- GPUAgent -->
+                    <wpfui:SymbolIcon x:Name="_gpuAgentIcon" Grid.Row="2" Grid.Column="0" Margin="0,0,8,6" FontSize="14" Symbol="DeveloperBoard24" />
+                    <TextBlock Grid.Row="2" Grid.Column="1" Margin="0,0,8,6" VerticalAlignment="Center" FontSize="11" Text="GPU Agent" />
+                    <TextBlock x:Name="_gpuAgentActivity" Grid.Row="2" Grid.Column="2" Margin="0,0,12,6" VerticalAlignment="Center" FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="Tuning TGP..." />
+                    <wpfui:Badge x:Name="_gpuAgentBadge" Grid.Row="2" Grid.Column="3" Margin="0,0,0,6" Appearance="Success">
+                        <TextBlock Text="Active" FontSize="9" />
+                    </wpfui:Badge>
+
+                    <!-- BatteryAgent -->
+                    <wpfui:SymbolIcon x:Name="_batteryAgentIcon" Grid.Row="3" Grid.Column="0" Margin="0,0,8,6" FontSize="14" Symbol="BatteryCharge24" />
+                    <TextBlock Grid.Row="3" Grid.Column="1" Margin="0,0,8,6" VerticalAlignment="Center" FontSize="11" Text="Battery Agent" />
+                    <TextBlock x:Name="_batteryAgentActivity" Grid.Row="3" Grid.Column="2" Margin="0,0,12,6" VerticalAlignment="Center" FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="Conserving..." />
+                    <wpfui:Badge x:Name="_batteryAgentBadge" Grid.Row="3" Grid.Column="3" Margin="0,0,0,6" Appearance="Success">
+                        <TextBlock Text="Active" FontSize="9" />
+                    </wpfui:Badge>
+
+                    <!-- HybridModeAgent (Phase 2) -->
+                    <wpfui:SymbolIcon x:Name="_hybridModeAgentIcon" Grid.Row="4" Grid.Column="0" Margin="0,0,8,6" FontSize="14" Symbol="DualScreen24" />
+                    <TextBlock Grid.Row="4" Grid.Column="1" Margin="0,0,8,6" VerticalAlignment="Center" FontSize="11" Text="Hybrid Mode Agent" />
+                    <TextBlock x:Name="_hybridModeAgentActivity" Grid.Row="4" Grid.Column="2" Margin="0,0,12,6" VerticalAlignment="Center" FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="iGPU mode..." />
+                    <wpfui:Badge x:Name="_hybridModeAgentBadge" Grid.Row="4" Grid.Column="3" Margin="0,0,0,6" Appearance="Success">
+                        <TextBlock Text="Active" FontSize="9" />
+                    </wpfui:Badge>
+
+                    <!-- DisplayAgent (Phase 2) -->
+                    <wpfui:SymbolIcon x:Name="_displayAgentIcon" Grid.Row="5" Grid.Column="0" Margin="0,0,8,6" FontSize="14" Symbol="BrightnessHigh24" />
+                    <TextBlock Grid.Row="5" Grid.Column="1" Margin="0,0,8,6" VerticalAlignment="Center" FontSize="11" Text="Display Agent" />
+                    <TextBlock x:Name="_displayAgentActivity" Grid.Row="5" Grid.Column="2" Margin="0,0,12,6" VerticalAlignment="Center" FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="50% @ 90Hz..." />
+                    <wpfui:Badge x:Name="_displayAgentBadge" Grid.Row="5" Grid.Column="3" Margin="0,0,0,6" Appearance="Success">
+                        <TextBlock Text="Active" FontSize="9" />
+                    </wpfui:Badge>
+
+                    <!-- KeyboardLightAgent (Phase 2) -->
+                    <wpfui:SymbolIcon x:Name="_keyboardLightAgentIcon" Grid.Row="6" Grid.Column="0" Margin="0,0,8,0" FontSize="14" Symbol="Keyboard24" />
+                    <TextBlock Grid.Row="6" Grid.Column="1" Margin="0,0,8,0" VerticalAlignment="Center" FontSize="11" Text="Keyboard Light Agent" />
+                    <TextBlock x:Name="_keyboardLightAgentActivity" Grid.Row="6" Grid.Column="2" Margin="0,0,12,0" VerticalAlignment="Center" FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="50% brightness..." />
+                    <wpfui:Badge x:Name="_keyboardLightAgentBadge" Grid.Row="6" Grid.Column="3" Appearance="Success">
+                        <TextBlock Text="Active" FontSize="9" />
+                    </wpfui:Badge>
+                </Grid>
+            </Expander>
+
+            <!-- Learning Statistics -->
+            <Expander Margin="0,0,0,8" IsExpanded="True">
+                <Expander.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <wpfui:SymbolIcon Margin="0,0,8,0" FontSize="16" Foreground="#F59E0B" Symbol="Database24" />
+                        <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="Pattern Learnings" />
+                    </StackPanel>
+                </Expander.Header>
+
+                <Grid Margin="24,8,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Behavior Data Points -->
+                    <Border Grid.Column="0" Padding="12,8" Margin="0,0,4,0" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" CornerRadius="6">
+                        <StackPanel>
+                            <TextBlock FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="BEHAVIOR PATTERNS" HorizontalAlignment="Center" />
+                            <TextBlock x:Name="_behaviorDataPointsText" FontSize="16" FontWeight="Bold" Text="0" HorizontalAlignment="Center" Margin="0,4,0,0" />
+                            <TextBlock FontSize="9" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="data points" HorizontalAlignment="Center" Margin="0,2,0,0" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Learned Preferences -->
+                    <Border Grid.Column="1" Padding="12,8" Margin="4,0,4,0" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" CornerRadius="6">
+                        <StackPanel>
+                            <TextBlock FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="LEARNED PREFERENCES" HorizontalAlignment="Center" />
+                            <TextBlock x:Name="_learnedPreferencesText" FontSize="16" FontWeight="Bold" Text="0" HorizontalAlignment="Center" Margin="0,4,0,0" />
+                            <TextBlock FontSize="9" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="user patterns" HorizontalAlignment="Center" Margin="0,2,0,0" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Persisted Data Size -->
+                    <Border Grid.Column="2" Padding="12,8" Margin="4,0,0,0" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" CornerRadius="6">
+                        <StackPanel>
+                            <TextBlock FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="DATA SIZE" HorizontalAlignment="Center" />
+                            <TextBlock x:Name="_dataSizeText" FontSize="16" FontWeight="Bold" Text="0 KB" HorizontalAlignment="Center" Margin="0,4,0,0" />
+                            <TextBlock FontSize="9" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="persisted" HorizontalAlignment="Center" Margin="0,2,0,0" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Expander>
+
+            <!-- Manual Controls -->
+            <Expander Margin="0,0,0,8" IsExpanded="False">
+                <Expander.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <wpfui:SymbolIcon Margin="0,0,8,0" FontSize="16" Foreground="#EF4444" Symbol="Settings24" />
+                        <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="Manual Override Controls" />
+                    </StackPanel>
+                </Expander.Header>
+
+                <StackPanel Margin="24,8,0,0">
+                    <!-- Master Toggle -->
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <wpfui:SymbolIcon Grid.Column="0" Margin="0,0,12,0" FontSize="20" Symbol="Power24" Foreground="#6366F1" />
+
+                        <StackPanel Grid.Column="1">
+                            <TextBlock FontSize="12" FontWeight="SemiBold" Text="Enable Orchestrator" />
+                            <TextBlock FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="Master switch for all autonomous optimization" Margin="0,2,0,0" />
+                        </StackPanel>
+
+                        <wpfui:ToggleSwitch
+                            x:Name="_orchestratorToggle"
+                            Grid.Column="2"
+                            Checked="OrchestratorToggle_Checked"
+                            Unchecked="OrchestratorToggle_Unchecked" />
+                    </Grid>
+
+                    <!-- Clear Learning Data Button -->
+                    <wpfui:Button
+                        x:Name="_clearDataButton"
+                        Margin="0,0,0,8"
+                        Icon="Delete24"
+                        Appearance="Danger"
+                        Click="ClearDataButton_Click">
+                        <TextBlock Text="Clear All Learning Data" FontSize="11" />
+                    </wpfui:Button>
+
+                    <!-- Info -->
+                    <TextBlock FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" Text="Note: The system learns from your usage patterns and manual adjustments. Clearing data will reset all learning." />
+                </StackPanel>
+            </Expander>
+
+            <!-- Status Info Bar -->
+            <custom:InfoBar
+                x:Name="_statusInfoBar"
+                Margin="0,0,0,0"
+                IsClosable="False"
+                IsOpen="True"
+                Severity="Success"
+                Title="System Active"
+                Message="7 agents are optimizing your battery life. Expect 65-88% improvement." />
+
+        </StackPanel>
+    </custom:CardControl>
+
+</UserControl>

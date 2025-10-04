@@ -3,7 +3,7 @@ REM Quick Installer Rebuild Script
 REM Fixes the installation path issue
 
 echo ==========================================
-echo Rebuild Installer - Elite Optimizations
+echo Rebuild Installer - Advanced Optimizations
 echo ==========================================
 echo.
 
@@ -42,7 +42,7 @@ if %ERRORLEVEL% EQU 0 (
     echo ==========================================
     echo.
     echo Installer location: build_installer\LenovoLegionToolkitSetup.exe
-    echo Version: 6.0.0-elite-phase4
+    echo Version: 6.2.0
     echo.
     if exist "build_installer\LenovoLegionToolkitSetup.exe" (
         for %%F in ("build_installer\LenovoLegionToolkitSetup.exe") do (

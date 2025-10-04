@@ -17,14 +17,15 @@ echo.
 
 REM Initialize build variables
 set BUILD_SUCCESS=0
-set BUILD_DIR=%CD%
-set PUBLISH_DIR=%BUILD_DIR%\publish\windows
-set BUILD_LOG=%BUILD_DIR%\build.log
+set BUILD_DIR=%~dp0
+cd /d "%BUILD_DIR%"
+set PUBLISH_DIR=%BUILD_DIR%publish\windows
+set BUILD_LOG=%BUILD_DIR%build.log
 
 REM Clear previous log
-if exist "%BUILD_LOG%" del "%BUILD_LOG%"
+if exist "%BUILD_LOG%" del /f /q "%BUILD_LOG%" 2>nul
 
-echo [%TIME%] Starting Windows build process... >> "%BUILD_LOG%"
+echo [%TIME%] Starting Windows build process... >> "%BUILD_LOG%" 2>&1
 
 REM ============================================
 REM Phase 0: Pre-build validation
@@ -35,27 +36,33 @@ echo ====================================
 REM Check .NET SDK
 echo Checking .NET SDK...
 dotnet --version >nul 2>&1
-if %ERRORLEVEL% NEQ 0 (
+if !ERRORLEVEL! NEQ 0 (
     echo ERROR: .NET SDK not found. Please install .NET 8.0 SDK.
-    echo [%TIME%] ERROR: .NET SDK not found >> "%BUILD_LOG%"
+    echo [%TIME%] ERROR: .NET SDK not found >> "%BUILD_LOG%" 2>&1
     goto :error_exit
 )
 
-for /f "tokens=*" %%i in ('dotnet --version') do set DOTNET_VERSION=%%i
+for /f "tokens=*" %%i in ('dotnet --version 2^>nul') do set DOTNET_VERSION=%%i
+if not defined DOTNET_VERSION (
+    echo ERROR: Unable to determine .NET SDK version
+    echo [%TIME%] ERROR: Unable to determine .NET version >> "%BUILD_LOG%" 2>&1
+    goto :error_exit
+)
+
 echo [OK] .NET SDK Version: %DOTNET_VERSION%
-echo [%TIME%] .NET SDK Version: %DOTNET_VERSION% >> "%BUILD_LOG%"
+echo [%TIME%] .NET SDK Version: %DOTNET_VERSION% >> "%BUILD_LOG%" 2>&1
 
 REM Validate .NET 8 requirement
-echo %DOTNET_VERSION% | findstr /R "^8\." >nul
-if %ERRORLEVEL% NEQ 0 (
+echo %DOTNET_VERSION% | findstr /R /C:"^8\." >nul 2>&1
+if !ERRORLEVEL! NEQ 0 (
     echo WARNING: .NET 8.0 recommended, found %DOTNET_VERSION%
-    echo [%TIME%] WARNING: Non-optimal .NET version: %DOTNET_VERSION% >> "%BUILD_LOG%"
+    echo [%TIME%] WARNING: Non-optimal .NET version: %DOTNET_VERSION% >> "%BUILD_LOG%" 2>&1
 )
 
 REM Check solution file
 if not exist "LenovoLegionToolkit.sln" (
     echo ERROR: Solution file LenovoLegionToolkit.sln not found
-    echo [%TIME%] ERROR: Solution file not found >> "%BUILD_LOG%"
+    echo [%TIME%] ERROR: Solution file not found >> "%BUILD_LOG%" 2>&1
     goto :error_exit
 )
 echo [OK] Solution file found
@@ -63,7 +70,7 @@ echo [OK] Solution file found
 REM Check main project file
 if not exist "LenovoLegionToolkit.WPF\LenovoLegionToolkit.WPF.csproj" (
     echo ERROR: Main project file not found
-    echo [%TIME%] ERROR: Main project file not found >> "%BUILD_LOG%"
+    echo [%TIME%] ERROR: Main project file not found >> "%BUILD_LOG%" 2>&1
     goto :error_exit
 )
 echo [OK] Main project file found
@@ -79,25 +86,28 @@ REM Clean previous builds with error handling
 echo Cleaning previous builds...
 if exist "bin" (
     rmdir /s /q "bin" 2>nul
+    timeout /t 1 /nobreak >nul 2>&1
     if exist "bin" (
         echo WARNING: Could not fully clean bin directory
-        echo [%TIME%] WARNING: bin directory cleanup incomplete >> "%BUILD_LOG%"
+        echo [%TIME%] WARNING: bin directory cleanup incomplete >> "%BUILD_LOG%" 2>&1
     )
 )
 
 if exist "obj" (
     rmdir /s /q "obj" 2>nul
+    timeout /t 1 /nobreak >nul 2>&1
     if exist "obj" (
         echo WARNING: Could not fully clean obj directory
-        echo [%TIME%] WARNING: obj directory cleanup incomplete >> "%BUILD_LOG%"
+        echo [%TIME%] WARNING: obj directory cleanup incomplete >> "%BUILD_LOG%" 2>&1
     )
 )
 
 if exist "%PUBLISH_DIR%" (
     rmdir /s /q "%PUBLISH_DIR%" 2>nul
+    timeout /t 1 /nobreak >nul 2>&1
     if exist "%PUBLISH_DIR%" (
         echo WARNING: Could not clean publish directory
-        echo [%TIME%] WARNING: publish directory cleanup incomplete >> "%BUILD_LOG%"
+        echo [%TIME%] WARNING: publish directory cleanup incomplete >> "%BUILD_LOG%" 2>&1
     )
 )
 
@@ -105,12 +115,12 @@ echo [OK] Build directories cleaned
 
 REM Restore NuGet packages with enhanced error handling
 echo Restoring NuGet packages...
-echo [%TIME%] Starting package restore >> "%BUILD_LOG%"
+echo [%TIME%] Starting package restore >> "%BUILD_LOG%" 2>&1
 
-dotnet restore LenovoLegionToolkit.sln --verbosity minimal 2>>"%BUILD_LOG%"
-if %ERRORLEVEL% NEQ 0 (
+dotnet restore "LenovoLegionToolkit.sln" --verbosity minimal >>"%BUILD_LOG%" 2>&1
+if !ERRORLEVEL! NEQ 0 (
     echo ERROR: Failed to restore NuGet packages
-    echo [%TIME%] ERROR: Package restore failed with code %ERRORLEVEL% >> "%BUILD_LOG%"
+    echo [%TIME%] ERROR: Package restore failed with code !ERRORLEVEL! >> "%BUILD_LOG%" 2>&1
     goto :error_exit
 )
 
@@ -151,31 +161,27 @@ echo   - Manual controls (enable/disable, clear data)
 echo.
 
 echo Building Legion Toolkit for Windows...
-echo [%TIME%] Starting Windows build with Advanced Optimizations >> "%BUILD_LOG%"
+echo [%TIME%] Starting Windows build with Advanced Optimizations >> "%BUILD_LOG%" 2>&1
 
 REM Create publish directory
-mkdir "%PUBLISH_DIR%" 2>nul
+if not exist "%PUBLISH_DIR%" mkdir "%PUBLISH_DIR%" 2>nul
 
 REM Build with comprehensive error checking (with x64 platform)
-dotnet publish "LenovoLegionToolkit.WPF\LenovoLegionToolkit.WPF.csproj" ^
-    -c Release ^
-    -r win-x64 ^
-    -p:Platform=x64 ^
-    --self-contained false ^
-    -o "%PUBLISH_DIR%" ^
-    --verbosity minimal ^
-    2>>"%BUILD_LOG%"
+dotnet publish "LenovoLegionToolkit.WPF\LenovoLegionToolkit.WPF.csproj" -c Release -r win-x64 -p:Platform=x64 --self-contained false -o "%PUBLISH_DIR%" --verbosity minimal >>"%BUILD_LOG%" 2>&1
 
-if %ERRORLEVEL% NEQ 0 (
-    echo ERROR: Windows build failed with exit code %ERRORLEVEL%
-    echo [%TIME%] ERROR: Windows build failed with code %ERRORLEVEL% >> "%BUILD_LOG%"
+if !ERRORLEVEL! NEQ 0 (
+    echo ERROR: Windows build failed with exit code !ERRORLEVEL!
+    echo [%TIME%] ERROR: Windows build failed with code !ERRORLEVEL! >> "%BUILD_LOG%" 2>&1
+    echo.
+    echo Last 20 lines of build log:
+    powershell -Command "Get-Content '%BUILD_LOG%' -Tail 20"
     goto :error_exit
 )
 
 REM Validate build output
 if not exist "%PUBLISH_DIR%\Lenovo Legion Toolkit.exe" (
     echo ERROR: Main executable not found after build
-    echo [%TIME%] ERROR: Main executable missing after build >> "%BUILD_LOG%"
+    echo [%TIME%] ERROR: Main executable missing after build >> "%BUILD_LOG%" 2>&1
     goto :error_exit
 )
 
@@ -184,7 +190,7 @@ echo [OK] Windows application built successfully
 REM Check executable properties
 for %%F in ("%PUBLISH_DIR%\Lenovo Legion Toolkit.exe") do (
     echo   - Executable size: %%~zF bytes
-    echo [%TIME%] Executable size: %%~zF bytes >> "%BUILD_LOG%"
+    echo [%TIME%] Executable size: %%~zF bytes >> "%BUILD_LOG%" 2>&1
 )
 
 REM ============================================
@@ -195,22 +201,22 @@ echo Phase 3: Create Windows Installer
 echo ====================================
 
 REM Check for Inno Setup
-set INNO_PATH=C:\Program Files (x86)\Inno Setup 6\ISCC.exe
+set "INNO_PATH=C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
 if exist "%INNO_PATH%" (
     echo Creating Windows installer...
-    echo [%TIME%] Starting installer creation >> "%BUILD_LOG%"
+    echo [%TIME%] Starting installer creation >> "%BUILD_LOG%" 2>&1
 
     REM Check installer script
     if not exist "make_installer.iss" (
         echo ERROR: Installer script make_installer.iss not found
-        echo [%TIME%] ERROR: Installer script missing >> "%BUILD_LOG%"
+        echo [%TIME%] ERROR: Installer script missing >> "%BUILD_LOG%" 2>&1
         goto :error_exit
     )
 
     REM Verify publish directory has files
     if not exist "%PUBLISH_DIR%\Lenovo Legion Toolkit.exe" (
         echo ERROR: Build files not found in %PUBLISH_DIR%
-        echo [%TIME%] ERROR: Publish directory empty >> "%BUILD_LOG%"
+        echo [%TIME%] ERROR: Publish directory empty >> "%BUILD_LOG%" 2>&1
         goto :error_exit
     )
 
@@ -222,8 +228,8 @@ if exist "%INNO_PATH%" (
     echo.
 
     REM Create installer with error checking
-    "%INNO_PATH%" "make_installer.iss" /Q 2>>"%BUILD_LOG%"
-    if %ERRORLEVEL% EQU 0 (
+    "%INNO_PATH%" "make_installer.iss" /Q >>"%BUILD_LOG%" 2>&1
+    if !ERRORLEVEL! EQU 0 (
         echo [OK] Windows installer created successfully
 
         REM Validate installer output
@@ -231,20 +237,20 @@ if exist "%INNO_PATH%" (
             for %%F in ("build_installer\LenovoLegionToolkitSetup.exe") do (
                 echo   - Installer size: %%~zF bytes
                 echo   - Version: 6.2.0
-                echo [%TIME%] Installer size: %%~zF bytes >> "%BUILD_LOG%"
+                echo [%TIME%] Installer size: %%~zF bytes >> "%BUILD_LOG%" 2>&1
             )
         ) else (
             echo WARNING: Installer file not found at expected location
-            echo [%TIME%] WARNING: Installer file missing >> "%BUILD_LOG%"
+            echo [%TIME%] WARNING: Installer file missing >> "%BUILD_LOG%" 2>&1
         )
     ) else (
-        echo WARNING: Installer creation failed with code %ERRORLEVEL%
-        echo [%TIME%] WARNING: Installer creation failed >> "%BUILD_LOG%"
+        echo WARNING: Installer creation failed with code !ERRORLEVEL!
+        echo [%TIME%] WARNING: Installer creation failed >> "%BUILD_LOG%" 2>&1
     )
 ) else (
     echo WARNING: Inno Setup not found, skipping installer creation
     echo   Install Inno Setup 6 from: https://jrsoftware.org/isdl.php
-    echo [%TIME%] WARNING: Inno Setup not available >> "%BUILD_LOG%"
+    echo [%TIME%] WARNING: Inno Setup not available >> "%BUILD_LOG%" 2>&1
 )
 
 REM ============================================
@@ -270,9 +276,9 @@ if not exist "%PUBLISH_DIR%\LenovoLegionToolkit.Lib.dll" (
     set /a VALIDATION_ERRORS+=1
 )
 
-if %VALIDATION_ERRORS% GTR 0 (
-    echo ERROR: Validation failed with %VALIDATION_ERRORS% errors
-    echo [%TIME%] ERROR: Final validation failed >> "%BUILD_LOG%"
+if !VALIDATION_ERRORS! GTR 0 (
+    echo ERROR: Validation failed with !VALIDATION_ERRORS! errors
+    echo [%TIME%] ERROR: Final validation failed >> "%BUILD_LOG%" 2>&1
     goto :error_exit
 )
 
@@ -353,7 +359,7 @@ echo Repository: https://github.com/vivekchamoli/LenovoLegion7i
 echo.
 
 set BUILD_SUCCESS=1
-echo [%TIME%] Build completed successfully >> "%BUILD_LOG%"
+echo [%TIME%] Build completed successfully >> "%BUILD_LOG%" 2>&1
 goto :exit
 
 :error_exit
@@ -364,16 +370,26 @@ echo ==========================================
 echo.
 echo Check the build log for details: %BUILD_LOG%
 echo.
+echo Common issues:
+echo   - .NET 8.0 SDK not installed
+echo   - NuGet package restore failed (check internet connection)
+echo   - File permissions (run as Administrator)
+echo   - Antivirus blocking build files
+echo.
 set BUILD_SUCCESS=0
 pause
 exit /b 1
 
 :exit
-if %BUILD_SUCCESS% EQU 1 (
+if !BUILD_SUCCESS! EQU 1 (
     echo Build completed successfully!
+    echo.
+    echo You can now run the application from:
+    echo   %PUBLISH_DIR%\Lenovo Legion Toolkit.exe
 ) else (
     echo Build encountered issues. Check %BUILD_LOG% for details.
 )
 echo.
 pause
+endlocal
 exit /b 0

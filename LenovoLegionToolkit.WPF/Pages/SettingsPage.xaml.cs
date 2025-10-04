@@ -166,7 +166,7 @@ public partial class SettingsPage
 
         _onBatterySinceResetToggle.Visibility = Visibility.Visible;
 
-        // Phase 4: Elite Optimizations
+        // Phase 4: Advanced Optimizations
         _adaptiveFanCurvesToggle.IsChecked = FeatureFlags.UseAdaptiveFanCurves;
         _mlAiControllerToggle.IsChecked = FeatureFlags.UseMLAIController;
         _reactiveSensorsToggle.IsChecked = FeatureFlags.UseReactiveSensors;

@@ -12,6 +12,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
 using LenovoLegionToolkit.Lib;
+using LenovoLegionToolkit.Lib.AI;
 using LenovoLegionToolkit.Lib.Automation;
 using LenovoLegionToolkit.Lib.Controllers;
 using LenovoLegionToolkit.Lib.Extensions;
@@ -171,6 +172,17 @@ public partial class App
             mainWindow.Show();
         }
 
+        // Initialize Multi-Agent System - v6.2.0
+        try
+        {
+            await OrchestratorIntegration.InitializeAsync(IoCContainer.Container);
+        }
+        catch (Exception ex)
+        {
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Failed to initialize Resource Orchestrator", ex);
+        }
+
         if (Log.Instance.IsTraceEnabled)
             Log.Instance.Trace($"Start up complete");
     }
@@ -198,6 +210,13 @@ public partial class App
 
     public async Task ShutdownAsync()
     {
+        // Shutdown Multi-Agent System - v6.2.0
+        try
+        {
+            await OrchestratorIntegration.ShutdownAsync(IoCContainer.Container);
+        }
+        catch { /* Ignored. */ }
+
         try
         {
             if (IoCContainer.TryResolve<AIController>() is { } aiController)

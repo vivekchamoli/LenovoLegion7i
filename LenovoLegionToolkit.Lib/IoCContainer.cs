@@ -9,6 +9,19 @@ public static class IoCContainer
 
     private static IContainer? _container;
 
+    public static IContainer Container
+    {
+        get
+        {
+            lock (Lock)
+            {
+                if (_container is null)
+                    throw new InvalidOperationException("IoCContainer must be initialized first");
+                return _container;
+            }
+        }
+    }
+
     public static void Initialize(params Module[] modules)
     {
         lock (Lock)

@@ -58,9 +58,9 @@ public class ThermalOptimizer
             var settings = workloadType switch
             {
                 WorkloadType.Gaming => OptimizeForGaming(predictions),
-                WorkloadType.Productivity => OptimizeForProductivity(predictions),
+                WorkloadType.HeavyProductivity => OptimizeForProductivity(predictions),
+                WorkloadType.LightProductivity => OptimizeForProductivity(predictions),
                 WorkloadType.AIWorkload => OptimizeForAI(predictions),
-                WorkloadType.Balanced => OptimizeBalanced(predictions),
                 _ => OptimizeBalanced(predictions)
             };
 
@@ -108,14 +108,15 @@ public class ThermalOptimizer
             Fan1Speed = sensorData.Fan1Speed,
             Fan2Speed = sensorData.Fan2Speed,
             AmbientTemp = 25, // Estimated
-            Timestamp = sensorData.Timestamp
+            Timestamp = sensorData.Timestamp,
+            Trend = new ThermalTrend { IsStable = true }
         };
     }
 
     /// <summary>
     /// Predict future thermal state using trend analysis
     /// </summary>
-    private ThermalPredictions PredictThermalState(List<ThermalState> history, int secondsAhead)
+    public ThermalPredictions PredictThermalState(List<ThermalState> history, int secondsAhead)
     {
         if (history.Count < 5)
             return GetDefaultPredictions();
@@ -378,24 +379,7 @@ public class ThermalOptimizer
 #region Data Structures
 
 /// <summary>
-/// Current thermal state
-/// </summary>
-public struct ThermalState
-{
-    public byte CpuTemp { get; set; }
-    public byte GpuTemp { get; set; }
-    public byte GpuHotspot { get; set; }
-    public byte GpuMemoryTemp { get; set; }
-    public byte VrmTemp { get; set; }
-    public byte SsdTemp { get; set; }
-    public int Fan1Speed { get; set; }
-    public int Fan2Speed { get; set; }
-    public byte AmbientTemp { get; set; }
-    public DateTime Timestamp { get; set; }
-}
-
-/// <summary>
-/// Thermal predictions
+/// Thermal predictions from optimizer
 /// </summary>
 public struct ThermalPredictions
 {
@@ -432,17 +416,6 @@ public class ThermalOptimizationResult
     public ThermalPredictions PredictedTemperatures { get; set; }
     public double ThrottleRisk { get; set; }
     public List<string> Recommendations { get; set; } = new();
-}
-
-/// <summary>
-/// Workload types for optimization
-/// </summary>
-public enum WorkloadType
-{
-    Balanced,
-    Gaming,
-    Productivity,
-    AIWorkload
 }
 
 /// <summary>

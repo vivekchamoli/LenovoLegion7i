@@ -35,7 +35,27 @@ public class RefreshRateFeature : IFeature<RefreshRate>
         if (Log.Instance.IsTraceEnabled)
             Log.Instance.Trace($"Current built in display settings: {currentSettings.ToExtendedString()}");
 
-        var result = display.GetPossibleSettings()
+        var possibleSettings = display.GetPossibleSettings().ToArray();
+
+        if (Log.Instance.IsTraceEnabled)
+        {
+            Log.Instance.Trace($"Total possible settings from Windows: {possibleSettings.Length}");
+
+            // Group by resolution and color depth to show all available modes
+            var grouped = possibleSettings
+                .GroupBy(s => new { s.Resolution, s.ColorDepth })
+                .OrderByDescending(g => g.Key.Resolution.Width);
+
+            foreach (var group in grouped)
+            {
+                var frequencies = string.Join(", ", group.Select(s => $"{s.Frequency}Hz"));
+                Log.Instance.Trace($"  {group.Key.Resolution} @ {group.Key.ColorDepth}bpp: {frequencies}");
+            }
+
+            Log.Instance.Trace($"Filtering to match: Resolution={currentSettings.Resolution}, ColorDepth={currentSettings.ColorDepth}");
+        }
+
+        var result = possibleSettings
             .Where(dps => Match(dps, currentSettings))
             .Select(dps => dps.Frequency)
             .Distinct()
@@ -96,11 +116,28 @@ public class RefreshRateFeature : IFeature<RefreshRate>
         }
 
         var possibleSettings = display.GetPossibleSettings();
+
+        // Try to find setting with same color depth first (preferred)
         var newSettings = possibleSettings
             .Where(dps => Match(dps, currentSettings))
             .Where(dps => dps.Frequency == state.Frequency)
             .Select(dps => new DisplaySetting(dps, currentSettings.Position, currentSettings.Orientation, DisplayFixedOutput.Default))
             .FirstOrDefault();
+
+        // If not found, try to find ANY setting with desired frequency (may change color depth)
+        if (newSettings is null)
+        {
+            newSettings = possibleSettings
+                .Where(dps => dps.Resolution == currentSettings.Resolution)
+                .Where(dps => dps.IsInterlaced == currentSettings.IsInterlaced)
+                .Where(dps => dps.Frequency == state.Frequency)
+                .Where(dps => !dps.IsTooSmall())
+                .Select(dps => new DisplaySetting(dps, currentSettings.Position, currentSettings.Orientation, DisplayFixedOutput.Default))
+                .FirstOrDefault();
+
+            if (newSettings is not null && Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Found settings at different color depth: {newSettings.ToExtendedString()}");
+        }
 
         if (newSettings is not null)
         {

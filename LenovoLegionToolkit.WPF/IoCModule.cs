@@ -1,4 +1,5 @@
 ﻿using Autofac;
+using LenovoLegionToolkit.Lib.AI;
 using LenovoLegionToolkit.Lib.Extensions;
 using LenovoLegionToolkit.WPF.CLI;
 using LenovoLegionToolkit.WPF.Settings;
@@ -20,5 +21,8 @@ public class IoCModule : Module
         builder.Register<DashboardSettings>();
 
         builder.Register<IpcServer>();
+
+        // Multi-Agent System - v6.2.0
+        OrchestratorIntegration.RegisterServices(builder);
     }
 }

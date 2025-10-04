@@ -1,4 +1,4 @@
-# Elite Optimizations - Benchmark Comparison Tool
+# Advanced Multi-Agent System - Benchmark Comparison Tool
 # Compare before/after performance metrics
 
 param(
@@ -216,7 +216,7 @@ function New-HTMLReport {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Elite Optimizations - Benchmark Comparison</title>
+    <title>Advanced Multi-Agent System - Benchmark Comparison</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -387,7 +387,7 @@ function New-HTMLReport {
 </head>
 <body>
     <div class="container">
-        <h1>⚡ Elite Optimizations Benchmark</h1>
+        <h1>⚡ Advanced Multi-Agent System Benchmark</h1>
         <p class="subtitle">Performance Comparison: Before vs. After Optimization</p>
 
         <div class="summary">
@@ -558,7 +558,7 @@ function New-HTMLReport {
         <div class="footer">
             <p class="timestamp">Report generated: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')</p>
             <p class="timestamp">Baseline: $($Baseline.Timestamp.ToString('yyyy-MM-dd HH:mm:ss')) | Current: $($Current.Timestamp.ToString('yyyy-MM-dd HH:mm:ss'))</p>
-            <p style="margin-top: 10px;">Elite Optimizations v1.0.0 - Lenovo Legion Toolkit</p>
+            <p style="margin-top: 10px;">Advanced Multi-Agent System v1.0.0 - Lenovo Legion Toolkit</p>
         </div>
     </div>
 </body>
@@ -574,7 +574,7 @@ Write-Host @"
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
 ║   BENCHMARK COMPARISON TOOL                              ║
-║   Elite Optimizations Performance Analysis               ║
+║   Advanced Multi-Agent System Performance Analysis       ║
 ║                                                           ║
 ╚═══════════════════════════════════════════════════════════╝
 

@@ -346,7 +346,7 @@
             Focusable="True"
             FontSize="24"
             FontWeight="Medium"
-            Text="Phase 4: Elite Optimizations (Beta)" />
+            Text="Advanced Optimisations" />
 
         <custom:CardControl Margin="0,0,0,8">
             <custom:CardControl.Header>

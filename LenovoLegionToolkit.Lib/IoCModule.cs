@@ -130,7 +130,7 @@ public class IoCModule : Module
         builder.Register<WindowsPowerModeController>();
         builder.Register<WindowsPowerPlanController>();
 
-        // Phase 4: Elite Optimization Controllers
+        // Phase 4: Advanced Optimization Controllers
         builder.Register<AdaptiveFanCurveController>();
         builder.Register<ManualFanController>();
         builder.Register<PowerUsagePredictor>();

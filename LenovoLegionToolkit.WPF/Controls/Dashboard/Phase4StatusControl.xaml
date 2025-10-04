@@ -8,7 +8,7 @@
     <custom:CardControl Margin="0,0,0,16" Icon="Rocket24">
         <custom:CardControl.Header>
             <StackPanel>
-                <TextBlock FontWeight="SemiBold" Text="Phase 4: Elite Optimizations Status" />
+                <TextBlock FontWeight="SemiBold" Text="Phase 4: Advanced Optimizations Status" />
                 <TextBlock
                     Margin="0,4,0,0"
                     FontSize="12"

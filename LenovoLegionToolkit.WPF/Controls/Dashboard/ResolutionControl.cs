@@ -35,9 +35,9 @@ public class ResolutionControl : AbstractComboBoxFeatureCardControl<Resolution>
         return LocalizationHelper.ForceLeftToRight(str);
     }
 
-    private void Listener_Changed(object? sender, EventArgs e) => Dispatcher.Invoke(async () =>
+    private void Listener_Changed(object? sender, EventArgs e) => Dispatcher.InvokeAsync(async () =>
     {
-        if (IsLoaded)
+        if (IsLoaded && IsVisible)
             await RefreshAsync();
     });
 }

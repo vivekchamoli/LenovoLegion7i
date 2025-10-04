@@ -18,7 +18,8 @@
         Margin="0,0,0,12"
         IndicatorMargin="0,64,0,0">
         <StackPanel>
-            <dashboard:EliteOptimizationsControl x:Name="_eliteOptimizations" Margin="0,16,16,0" />
+            <dashboard:OptimizationsControl x:Name="_optimizations" Margin="0,16,16,0" />
+            <dashboard:OrchestratorDashboardControl x:Name="_orchestratorDashboard" Margin="0,0,16,0" />
             <dashboard:SensorsControl x:Name="_sensors" Margin="0,0,16,0" />
             <Grid x:Name="_content" />
         </StackPanel>

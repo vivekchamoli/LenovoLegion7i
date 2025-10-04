@@ -154,7 +154,10 @@ public partial class OrchestratorDashboardControl : UserControl
             // Get current battery info
             var batteryInfo = Lib.System.Battery.GetBatteryInformation();
             var remainingMinutes = batteryInfo.BatteryLifeRemaining;
+            var isOnAC = batteryInfo.IsCharging;
+            var batteryPercent = batteryInfo.BatteryPercentage;
 
+            // Valid battery time available
             if (remainingMinutes > 0 && remainingMinutes < 1000)
             {
                 var hours = remainingMinutes / 60;
@@ -162,11 +165,19 @@ public partial class OrchestratorDashboardControl : UserControl
                 _batteryPredictionText.Text = $"{hours}h {minutes}m";
                 _batteryPredictionText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#10B981"));
             }
-            else if (batteryInfo.BatteryPercentage == 100)
+            // Battery is fully charged
+            else if (batteryPercent == 100)
             {
                 _batteryPredictionText.Text = "Full";
                 _batteryPredictionText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#10B981"));
             }
+            // On battery but Windows is still calculating (shows "Calculating..." instead of "N/A")
+            else if (!isOnAC && batteryPercent > 0 && batteryPercent < 100 && (remainingMinutes <= 0 || remainingMinutes >= 1000))
+            {
+                _batteryPredictionText.Text = "Calculating...";
+                _batteryPredictionText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F59E0B"));
+            }
+            // On AC adapter or invalid state
             else
             {
                 _batteryPredictionText.Text = "N/A";
@@ -176,6 +187,7 @@ public partial class OrchestratorDashboardControl : UserControl
         catch
         {
             _batteryPredictionText.Text = "N/A";
+            _batteryPredictionText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6B7280"));
         }
     }
 

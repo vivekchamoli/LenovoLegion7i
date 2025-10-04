@@ -14,8 +14,9 @@ namespace LenovoLegionToolkit.Lib.Controllers;
 /// Implements direct EC register access for advanced hardware control
 /// Fixes all known Gen 9 thermal and performance issues
 /// </summary>
-public class Gen9ECController
+public class Gen9ECController : IDisposable
 {
+    private bool _disposed;
     // Gen 9 specific EC registers for hardware control
     private readonly Dictionary<string, byte> Gen9Registers = new()
     {
@@ -401,6 +402,32 @@ public class Gen9ECController
 
     [DllImport("inpoutx64.dll", EntryPoint = "Inp32")]
     private static extern byte InB(ushort port);
+
+    /// <summary>
+    /// Dispose the Gen9ECController and release resources
+    /// </summary>
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Protected dispose pattern implementation
+    /// </summary>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed)
+            return;
+
+        if (disposing)
+        {
+            // Dispose managed resources
+            _ecLock?.Dispose();
+        }
+
+        _disposed = true;
+    }
 }
 
 /// <summary>

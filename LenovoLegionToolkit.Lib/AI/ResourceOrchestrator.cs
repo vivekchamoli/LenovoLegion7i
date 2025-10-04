@@ -15,8 +15,9 @@ namespace LenovoLegionToolkit.Lib.AI;
 /// Replaces siloed controller approach with unified intelligence
 /// Coordinates Thermal, Power, GPU, and Battery agents for optimal system performance
 /// </summary>
-public class ResourceOrchestrator
+public class ResourceOrchestrator : IDisposable
 {
+    private bool _disposed;
     private readonly SystemContextStore _contextStore;
     private readonly DecisionArbitrationEngine _arbitrator;
     private readonly ActionExecutor _actionExecutor;
@@ -330,6 +331,43 @@ public class ResourceOrchestrator
             if (Log.Instance.IsTraceEnabled)
                 Log.Instance.Trace($"Agent {agent.AgentName} notification failed", ex);
         }
+    }
+
+    /// <summary>
+    /// Dispose the ResourceOrchestrator and release resources
+    /// </summary>
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Protected dispose pattern implementation
+    /// </summary>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed)
+            return;
+
+        if (disposing)
+        {
+            // Stop the orchestrator first
+            StopAsync().GetAwaiter().GetResult();
+
+            // Dispose managed resources
+            _cancellationTokenSource?.Dispose();
+            _uptimeStopwatch?.Stop();
+
+            // Dispose agents if they implement IDisposable
+            foreach (var agent in _agents)
+            {
+                if (agent is IDisposable disposable)
+                    disposable.Dispose();
+            }
+        }
+
+        _disposed = true;
     }
 }
 

@@ -49,7 +49,7 @@ public partial class FanCurveControl
 
         for (var i = 0; i < tableValues.Length; i++)
         {
-            var slider = GenerateSlider(i, 0, 10);
+            var slider = GenerateSlider(i, 0, 255);
             slider.Value = tableValues[i];
             _sliders.Add(slider);
             _slidersGrid.Children.Add(slider);

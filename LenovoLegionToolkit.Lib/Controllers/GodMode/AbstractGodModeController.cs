@@ -103,9 +103,10 @@ public abstract class AbstractGodModeController(GodModeSettings settings)
     public Task<FanTable> GetDefaultFanTableAsync()
     {
         // Enhanced fan table allowing fans to reach full 5500 RPM potential
-        // Progressive curve: 0 RPM → 1100 → 2200 → 3300 → 4400 → 5500 RPM
-        // Previous values [1-10] capped fans at ~2000/1700 RPM
-        var fanTable = new FanTable([0, 12, 24, 36, 48, 60, 72, 84, 96, 108]);
+        // Using full 0-255 range for smooth progressive curve
+        // Values: 0% → 11% → 22% → 33% → 44% → 56% → 67% → 78% → 89% → 100%
+        // RPM:    0   → 605 → 1210 → 1815 → 2420 → 3080 → 3685 → 4290 → 4895 → 5500
+        var fanTable = new FanTable([0, 28, 57, 85, 113, 142, 170, 198, 227, 255]);
         return Task.FromResult(fanTable);
     }
 
@@ -143,7 +144,7 @@ public abstract class AbstractGodModeController(GodModeSettings settings)
     {
         var minimumFanTable = await GetMinimumFanTableAsync().ConfigureAwait(false);
         var minimum = minimumFanTable.GetTable();
-        return fanTable.GetTable().Where((t, i) => t < minimum[i] || t > 10u).IsEmpty();
+        return fanTable.GetTable().Where((t, i) => t < minimum[i] || t > 255u).IsEmpty();
     }
 
     private static bool IsValidStore(GodModeSettings.GodModeSettingsStore store) => store.Presets.Count != 0 && store.Presets.ContainsKey(store.ActivePresetId);

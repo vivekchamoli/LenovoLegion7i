@@ -633,3 +633,4 @@ htmlcov/
 .vscode/
 .idea/
 *.md
+!README.md

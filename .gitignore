@@ -632,3 +632,4 @@ htmlcov/
 # IDE and editor directories
 .vscode/
 .idea/
+*.md

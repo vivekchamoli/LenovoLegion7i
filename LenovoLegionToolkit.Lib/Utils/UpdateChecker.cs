@@ -59,17 +59,29 @@ public class UpdateChecker
                 var productInformation = new ProductHeaderValue("LenovoLegionToolkit-UpdateChecker");
                 var connection = new Connection(productInformation, adapter);
                 var githubClient = new GitHubClient(connection);
-                var releases = await githubClient.Repository.Release.GetAll("vivekchamoli", "LenovoLegion7i", new ApiOptions { PageSize = 5 }).ConfigureAwait(false);
+
+                // Check for updates from vivekchamoli/LenovoLegion7i repository
+                var releases = await githubClient.Repository.Release.GetAll("vivekchamoli", "LenovoLegion7i", new ApiOptions { PageSize = 10 }).ConfigureAwait(false);
 
                 var thisReleaseVersion = Assembly.GetEntryAssembly()?.GetName().Version;
+                if (thisReleaseVersion is null)
+                {
+                    if (Log.Instance.IsTraceEnabled)
+                        Log.Instance.Trace($"Failed to get current version");
+
+                    Status = UpdateCheckStatus.Error;
+                    return null;
+                }
+
                 var thisBuildDate = Assembly.GetEntryAssembly()?.GetBuildDateTime() ?? new DateTime(2000, 1, 1);
 
                 var updates = releases
+                    .Where(r => r != null)
                     .Where(r => !r.Draft)
                     .Where(r => !r.Prerelease)
                     .Where(r => (r.PublishedAt ?? r.CreatedAt).UtcDateTime >= thisBuildDate)
                     .Select(r => new Update(r))
-                    .Where(r => r.Version > thisReleaseVersion)
+                    .Where(r => r.Version != null && r.Version > thisReleaseVersion)
                     .OrderByDescending(r => r.Version)
                     .ToArray();
 
@@ -137,7 +149,7 @@ public class UpdateChecker
     {
         UpdateCheckFrequency.PerHour => TimeSpan.FromHours(1),
         UpdateCheckFrequency.PerThreeHours => TimeSpan.FromHours(3),
-        UpdateCheckFrequency.PerTwelveHours => TimeSpan.FromHours(13),
+        UpdateCheckFrequency.PerTwelveHours => TimeSpan.FromHours(12),
         UpdateCheckFrequency.PerDay => TimeSpan.FromDays(1),
         UpdateCheckFrequency.PerWeek => TimeSpan.FromDays(7),
         UpdateCheckFrequency.PerMonth => TimeSpan.FromDays(30),

@@ -102,7 +102,10 @@ public abstract class AbstractGodModeController(GodModeSettings settings)
 
     public Task<FanTable> GetDefaultFanTableAsync()
     {
-        var fanTable = new FanTable([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+        // Enhanced fan table allowing fans to reach full 5500 RPM potential
+        // Progressive curve: 0 RPM → 1100 → 2200 → 3300 → 4400 → 5500 RPM
+        // Previous values [1-10] capped fans at ~2000/1700 RPM
+        var fanTable = new FanTable([0, 12, 24, 36, 48, 60, 72, 84, 96, 108]);
         return Task.FromResult(fanTable);
     }
 

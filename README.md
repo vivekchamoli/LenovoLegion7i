@@ -3,7 +3,6 @@
 # Lenovo Legion Toolkit
 
 [![Build](https://github.com/vivekchamoli/LenovoLegion7i/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/vivekchamoli/LenovoLegion7i/actions/workflows/build.yml)
-[![Crowdin](https://badges.crowdin.net/llt/localized.svg)](https://crowdin.com/project/llt)
 <a href="https://hellogithub.com/repository/dd55be3ac0c146208259f17b29d2162f" target="_blank"><img src="https://abroad.hellogithub.com/v1/widgets/recommend.svg?rid=dd55be3ac0c146208259f17b29d2162f&claim_uid=LBbuUlZqTIm1JAP&theme=small" alt="Featured｜HelloGitHub" /></a>
 
 ---

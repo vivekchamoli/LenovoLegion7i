@@ -20,7 +20,7 @@ Lenovo Legion Toolkit (LLT) is a utility created for Lenovo Legion (and similar)
 
 It runs no background services, uses less memory, uses virtually no CPU, and contains no telemetry. Just like Lenovo Vantage, this application is Windows only.
 
-<img src="assets/dashboard-screenshot.png" width="900" />
+<img src="assets/screenshot_main.png" width="700" />
 
 &nbsp;
 

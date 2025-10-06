@@ -15,6 +15,7 @@ public class SystemContext
     public required PowerState PowerState { get; set; }
     public required GpuSystemState GpuState { get; set; }
     public required BatteryState BatteryState { get; set; }
+    public MemoryState MemoryState { get; set; } = new();
     public WorkloadProfile CurrentWorkload { get; set; } = new();
     public UserIntent UserIntent { get; set; }
     public DateTime Timestamp { get; set; }
@@ -74,6 +75,17 @@ public class PowerState
 }
 
 /// <summary>
+/// Memory state from system
+/// </summary>
+public class MemoryState
+{
+    public long TotalMemoryMB { get; set; }
+    public long AvailableMemoryMB { get; set; }
+    public int UsagePercent { get; set; }
+    public long CommittedMemoryMB { get; set; }
+}
+
+/// <summary>
 /// GPU state details (renamed from GpuState to avoid collision with GPUState enum)
 /// </summary>
 public class GpuSystemState
@@ -130,17 +142,21 @@ public class WorkloadProfile
 
 /// <summary>
 /// Workload type classification
+/// Enhanced with media playback, video conferencing, and compilation workloads
 /// </summary>
 public enum WorkloadType
 {
-    Idle,
-    LightProductivity,
-    HeavyProductivity,
-    Gaming,
-    AIWorkload,
-    ContentCreation,
-    Mixed,
-    Unknown
+    Idle,                    // System idle, minimal activity
+    LightProductivity,       // Light browsing, document editing
+    HeavyProductivity,       // Heavy multitasking, complex documents
+    Gaming,                  // Gaming workload (high GPU)
+    MediaPlayback,           // Movie watching, music playback (CRITICAL for power saving)
+    VideoConferencing,       // Zoom, Teams, Discord calls
+    AIWorkload,              // AI/ML training, inference (high GPU memory)
+    ContentCreation,         // Video editing, 3D modeling (high CPU + GPU)
+    Compilation,             // Code compilation, build processes (CPU burst)
+    Mixed,                   // Multiple workload types active
+    Unknown                  // Cannot classify
 }
 
 /// <summary>

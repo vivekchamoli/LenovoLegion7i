@@ -346,6 +346,74 @@
             Focusable="True"
             FontSize="24"
             FontWeight="Medium"
+            Text="AI Power Management" />
+
+        <custom:CardControl Margin="0,0,0,16" Icon="Briefcase24">
+            <custom:CardControl.Header>
+                <controls:CardHeaderControl Title="Work Mode (Productivity)" Subtitle="Office/Professional optimization - 8-10h battery, &lt;25dB silence, iGPU forced" />
+            </custom:CardControl.Header>
+            <wpfui:ToggleSwitch
+                x:Name="_workModeToggle"
+                Margin="0,0,0,8"
+                AutomationProperties.Name="Work Mode"
+                Click="WorkModeToggle_Click"
+                Visibility="Hidden" />
+        </custom:CardControl>
+
+        <custom:CardControl Margin="0,0,0,8">
+            <custom:CardControl.Header>
+                <controls:CardHeaderControl Title="Resource Orchestrator" Subtitle="Master AI controller for battery optimization (+50-80% battery life)" />
+            </custom:CardControl.Header>
+            <wpfui:ToggleSwitch
+                x:Name="_resourceOrchestratorToggle"
+                Margin="0,0,0,8"
+                AutomationProperties.Name="Resource Orchestrator"
+                Click="ResourceOrchestratorToggle_Click"
+                Visibility="Hidden" />
+        </custom:CardControl>
+
+        <custom:CardControl Margin="0,0,0,8">
+            <custom:CardControl.Header>
+                <controls:CardHeaderControl Title="Hybrid Mode Agent" Subtitle="Predictive GPU switching for app launches (+10-15% battery, -95% latency)" />
+            </custom:CardControl.Header>
+            <wpfui:ToggleSwitch
+                x:Name="_hybridModeAgentToggle"
+                Margin="0,0,0,8"
+                AutomationProperties.Name="Hybrid Mode Agent"
+                Click="HybridModeAgentToggle_Click"
+                Visibility="Hidden" />
+        </custom:CardControl>
+
+        <custom:CardControl Margin="0,0,0,8">
+            <custom:CardControl.Header>
+                <controls:CardHeaderControl Title="Thermal Agent" Subtitle="Intelligent thermal override to prevent throttling (+5-10% battery)" />
+            </custom:CardControl.Header>
+            <wpfui:ToggleSwitch
+                x:Name="_thermalAgentToggle"
+                Margin="0,0,0,8"
+                AutomationProperties.Name="Thermal Agent"
+                Click="ThermalAgentToggle_Click"
+                Visibility="Hidden" />
+        </custom:CardControl>
+
+        <custom:CardControl Margin="0,0,0,24">
+            <custom:CardControl.Header>
+                <controls:CardHeaderControl Title="Power Agent" Subtitle="CPU core parking and memory compression (+3-8% battery, -10-15W idle)" />
+            </custom:CardControl.Header>
+            <wpfui:ToggleSwitch
+                x:Name="_powerAgentToggle"
+                Margin="0,0,0,8"
+                AutomationProperties.Name="Power Agent"
+                Click="PowerAgentToggle_Click"
+                Visibility="Hidden" />
+        </custom:CardControl>
+
+        <TextBlock
+            Margin="0,16,0,24"
+            AutomationProperties.Name="{Binding RelativeSource={RelativeSource Mode=Self}, Path=Text}"
+            Focusable="True"
+            FontSize="24"
+            FontWeight="Medium"
             Text="Advanced Optimisations" />
 
         <custom:CardControl Margin="0,0,0,8">

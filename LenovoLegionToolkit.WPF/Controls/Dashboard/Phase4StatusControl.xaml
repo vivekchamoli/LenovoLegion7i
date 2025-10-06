@@ -8,12 +8,12 @@
     <custom:CardControl Margin="0,0,0,16" Icon="Rocket24">
         <custom:CardControl.Header>
             <StackPanel>
-                <TextBlock FontWeight="SemiBold" Text="Phase 4: Advanced Optimizations Status" />
+                <TextBlock FontWeight="SemiBold" Text="AI Realtime Optimization Status" />
                 <TextBlock
                     Margin="0,4,0,0"
                     FontSize="12"
                     Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                    Text="Real-time status of advanced features"
+                    Text="Real-time status of AI-powered optimization features"
                     TextWrapping="Wrap" />
             </StackPanel>
         </custom:CardControl.Header>
@@ -64,7 +64,7 @@
                     Grid.Column="0"
                     Margin="0,0,8,8"
                     FontSize="16"
-                    Symbol="Brain24" />
+                    Symbol="Sparkle24" />
                 <TextBlock
                     Grid.Row="1"
                     Grid.Column="1"
@@ -135,7 +135,7 @@
                 Margin="0,8,0,0"
                 IsClosable="False"
                 IsOpen="False"
-                Severity="Info" />
+                Severity="Informational" />
 
             <!-- Adaptive Fan Curve Info (visible when enabled) -->
             <custom:InfoBar

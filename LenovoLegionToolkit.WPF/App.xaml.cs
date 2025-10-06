@@ -103,7 +103,9 @@ public partial class App
             Log.Instance.Trace($"Starting... [version={Assembly.GetEntryAssembly()?.GetName().Version}, build={Assembly.GetEntryAssembly()?.GetBuildDateTimeString()}, os={Environment.OSVersion}, dotnet={Environment.Version}]");
 
         WinFormsApp.SetHighDpiMode(WinFormsHighDpiMode.PerMonitorV2);
-        RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly;
+        // PERFORMANCE FIX: Use hardware rendering instead of software-only
+        // Software rendering causes severe UI lag and sluggishness
+        // RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly;
 
         IoCContainer.Initialize(
             new Lib.IoCModule(),
@@ -135,6 +137,26 @@ public partial class App
         await InitHybridModeAsync();
         await InitAutomationProcessorAsync();
         InitMacroController();
+
+        // Initialize Elite Features Manager early for hardware capability detection
+        // This triggers constructor which detects MSR, NVAPI, PCIe, HAL availability
+        try
+        {
+            var eliteManager = IoCContainer.Resolve<Lib.System.EliteFeaturesManager>();
+            var availability = eliteManager.GetFeatureAvailability();
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Elite Features Manager initialized: {availability.GetAvailabilitySummary()}");
+        }
+        catch (Exception ex)
+        {
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Elite Features Manager initialization failed (will use graceful degradation)", ex);
+        }
+
+        // Start centralized services (v6.3.1+)
+        await IoCContainer.Resolve<BatteryStateService>().StartAsync(); // Centralized battery state (500ms)
+        await IoCContainer.Resolve<SystemTickService>().StartAsync(); // Consolidated timer service
+        await IoCContainer.Resolve<ProcessLaunchMonitor>().StartAsync(); // Phase 2: Predictive GPU switching
 
         await IoCContainer.Resolve<AIController>().StartIfNeededAsync();
         await IoCContainer.Resolve<HWiNFOIntegration>().StartStopIfNeededAsync();

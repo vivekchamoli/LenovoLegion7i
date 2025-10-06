@@ -6,6 +6,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using LenovoLegionToolkit.Lib;
 using LenovoLegionToolkit.Lib.AI;
+using LenovoLegionToolkit.Lib.Services;
 using LenovoLegionToolkit.Lib.Utils;
 using Wpf.Ui;
 using Wpf.Ui.Controls;
@@ -15,6 +16,7 @@ namespace LenovoLegionToolkit.WPF.Controls.Dashboard;
 public partial class OrchestratorDashboardControl : UserControl
 {
     private OrchestratorLifecycleManager? _lifecycleManager;
+    private BatteryStateService? _batteryStateService;
     private DispatcherTimer? _updateTimer;
     private DateTime? _calculatingStartTime;
 
@@ -35,6 +37,9 @@ public partial class OrchestratorDashboardControl : UserControl
         {
             // Resolve lifecycle manager from IoC
             _lifecycleManager = IoCContainer.TryResolve<OrchestratorLifecycleManager>();
+
+            // PERFORMANCE FIX: Use cached battery state service to avoid blocking WMI calls on UI thread
+            _batteryStateService = IoCContainer.TryResolve<BatteryStateService>();
 
             if (_lifecycleManager == null)
             {
@@ -92,13 +97,13 @@ public partial class OrchestratorDashboardControl : UserControl
             // Update status badge
             if (stats.IsRunning)
             {
-                _statusBadge.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#10B981"));
+                _statusBadge.Background = (Brush)Application.Current.Resources["SystemFillColorSuccessBrush"];
                 _statusText.Text = "RUNNING";
                 _orchestratorToggle.IsChecked = true;
             }
             else
             {
-                _statusBadge.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#EF4444"));
+                _statusBadge.Background = (Brush)Application.Current.Resources["SystemFillColorCriticalBrush"];
                 _statusText.Text = "STOPPED";
                 _orchestratorToggle.IsChecked = false;
             }
@@ -153,8 +158,8 @@ public partial class OrchestratorDashboardControl : UserControl
     {
         try
         {
-            // Get current battery info
-            var batteryInfo = Lib.System.Battery.GetBatteryInformation();
+            // PERFORMANCE FIX: Use cached battery info to avoid blocking WMI call on UI thread
+            var batteryInfo = _batteryStateService?.CurrentState ?? Lib.System.Battery.GetBatteryInformation();
             var remainingMinutes = batteryInfo.BatteryLifeRemaining;
             var isOnAC = batteryInfo.IsCharging;
             var batteryPercent = batteryInfo.BatteryPercentage;
@@ -163,16 +168,43 @@ public partial class OrchestratorDashboardControl : UserControl
             if (batteryPercent == 100)
             {
                 _batteryPredictionText.Text = "Full";
-                _batteryPredictionText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#10B981"));
+                _batteryPredictionText.Foreground = (Brush)Application.Current.Resources["SystemFillColorSuccessBrush"];
                 _calculatingStartTime = null;
                 return;
             }
 
-            // On AC adapter - show N/A
+            // On AC adapter - show charging status or fully charged
             if (isOnAC)
             {
-                _batteryPredictionText.Text = "N/A";
-                _batteryPredictionText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6B7280"));
+                if (batteryPercent == 100)
+                {
+                    _batteryPredictionText.Text = "Fully Charged";
+                    _batteryPredictionText.Foreground = (Brush)Application.Current.Resources["SystemFillColorSuccessBrush"];
+                }
+                else if (batteryInfo.DischargeRate < 0) // Negative discharge rate means charging
+                {
+                    // Calculate time to full charge
+                    var timeToFull = CalculateTimeToFullCharge(batteryInfo);
+                    if (timeToFull > 0)
+                    {
+                        var hours = timeToFull / 60;
+                        var minutes = timeToFull % 60;
+                        _batteryPredictionText.Text = $"Charging: {hours}h {minutes}m to full";
+                        _batteryPredictionText.Foreground = (Brush)Application.Current.Resources["SystemAccentColorPrimaryBrush"]; // Blue for charging
+                    }
+                    else
+                    {
+                        _batteryPredictionText.Text = "Charging...";
+                        _batteryPredictionText.Foreground = (Brush)Application.Current.Resources["SystemAccentColorPrimaryBrush"];
+                    }
+                }
+                else
+                {
+                    // Plugged in but not charging (battery saver mode or full)
+                    _batteryPredictionText.Text = "On AC Power";
+                    _batteryPredictionText.Foreground = (Brush)Application.Current.Resources["SystemFillColorSuccessBrush"];
+                }
+
                 _calculatingStartTime = null;
                 return;
             }
@@ -183,7 +215,7 @@ public partial class OrchestratorDashboardControl : UserControl
                 var hours = remainingMinutes / 60;
                 var minutes = remainingMinutes % 60;
                 _batteryPredictionText.Text = $"{hours}h {minutes}m";
-                _batteryPredictionText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#10B981"));
+                _batteryPredictionText.Foreground = (Brush)Application.Current.Resources["SystemFillColorSuccessBrush"];
                 _calculatingStartTime = null;
                 return;
             }
@@ -200,7 +232,7 @@ public partial class OrchestratorDashboardControl : UserControl
                     var hours = estimatedMinutes / 60;
                     var minutes = estimatedMinutes % 60;
                     _batteryPredictionText.Text = $"{hours}h {minutes}m";
-                    _batteryPredictionText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#10B981"));
+                    _batteryPredictionText.Foreground = (Brush)Application.Current.Resources["SystemFillColorSuccessBrush"];
                     _calculatingStartTime = null;
                 }
                 else
@@ -214,7 +246,7 @@ public partial class OrchestratorDashboardControl : UserControl
                     if (calculatingDuration < CALCULATING_TIMEOUT_SECONDS)
                     {
                         _batteryPredictionText.Text = "Calculating...";
-                        _batteryPredictionText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F59E0B"));
+                        _batteryPredictionText.Foreground = (Brush)Application.Current.Resources["SystemFillColorCautionBrush"];
                     }
                     else
                     {
@@ -223,7 +255,7 @@ public partial class OrchestratorDashboardControl : UserControl
                         var estHours = (int)estimatedHours;
                         var estMinutes = (int)((estimatedHours - estHours) * 60);
                         _batteryPredictionText.Text = $"~{estHours}h {estMinutes}m";
-                        _batteryPredictionText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F59E0B"));
+                        _batteryPredictionText.Foreground = (Brush)Application.Current.Resources["SystemFillColorCautionBrush"];
                     }
                 }
                 return;
@@ -231,13 +263,13 @@ public partial class OrchestratorDashboardControl : UserControl
 
             // Fallback - invalid state
             _batteryPredictionText.Text = "N/A";
-            _batteryPredictionText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6B7280"));
+            _batteryPredictionText.Foreground = (Brush)Application.Current.Resources["TextFillColorTertiaryBrush"];
             _calculatingStartTime = null;
         }
         catch
         {
             _batteryPredictionText.Text = "N/A";
-            _batteryPredictionText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6B7280"));
+            _batteryPredictionText.Foreground = (Brush)Application.Current.Resources["TextFillColorTertiaryBrush"];
             _calculatingStartTime = null;
         }
     }
@@ -283,12 +315,59 @@ public partial class OrchestratorDashboardControl : UserControl
         }
     }
 
+    /// <summary>
+    /// Calculate time to full charge when plugged into AC
+    /// </summary>
+    private int CalculateTimeToFullCharge(Lib.BatteryInformation batteryInfo)
+    {
+        try
+        {
+            var chargeRate = Math.Abs(batteryInfo.DischargeRate); // mW (negative when charging, we need absolute)
+            var currentCapacity = batteryInfo.EstimateChargeRemaining; // mWh
+            var fullCapacity = batteryInfo.FullChargeCapacity; // mWh
+
+            // Charge rate must be valid and indicate charging
+            if (batteryInfo.DischargeRate >= 0) // Not charging (positive or zero)
+                return 0;
+
+            if (chargeRate < 100 || chargeRate > 200000) // Sanity check (0.1W to 200W)
+                return 0;
+
+            // Capacity must be valid
+            if (currentCapacity < 100 || fullCapacity < 100 || currentCapacity >= fullCapacity)
+                return 0;
+
+            // Calculate remaining capacity to charge
+            var remainingToCharge = fullCapacity - currentCapacity; // mWh
+
+            // Calculate time to full charge
+            // Time (hours) = Energy (mWh) / Power (mW)
+            var hoursToFull = (double)remainingToCharge / (double)chargeRate;
+            var minutesToFull = (int)(hoursToFull * 60.0);
+
+            // Sanity check the result (1 min to 10 hours)
+            if (minutesToFull < 1 || minutesToFull > 600)
+                return 0;
+
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Charge time calculation: {remainingToCharge}mWh / {chargeRate}mW = {minutesToFull} minutes to full");
+
+            return minutesToFull;
+        }
+        catch (Exception ex)
+        {
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Failed to calculate time to full charge", ex);
+            return 0;
+        }
+    }
+
     private double CalculateBatteryImprovement()
     {
         try
         {
-            // Get current battery prediction
-            var batteryInfo = Lib.System.Battery.GetBatteryInformation();
+            // PERFORMANCE FIX: Use cached battery info to avoid blocking WMI call
+            var batteryInfo = _batteryStateService?.CurrentState ?? Lib.System.Battery.GetBatteryInformation();
             var remainingMinutes = batteryInfo.BatteryLifeRemaining;
 
             // Try Windows value first
@@ -324,7 +403,8 @@ public partial class OrchestratorDashboardControl : UserControl
 
         try
         {
-            var batteryInfo = Lib.System.Battery.GetBatteryInformation();
+            // PERFORMANCE FIX: Use cached battery info to avoid blocking WMI call
+            var batteryInfo = _batteryStateService?.CurrentState ?? Lib.System.Battery.GetBatteryInformation();
             var isOnBattery = batteryInfo.BatteryPercentage < 100;
 
             if (isOnBattery)
@@ -357,7 +437,7 @@ public partial class OrchestratorDashboardControl : UserControl
 
     private void ShowDisabledState()
     {
-        _statusBadge.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6B7280"));
+        _statusBadge.Background = (Brush)Application.Current.Resources["TextFillColorTertiaryBrush"];
         _statusText.Text = "UNAVAILABLE";
         _uptimeText.Text = "--:--:--";
         _cyclesText.Text = "0";
@@ -463,7 +543,8 @@ public partial class OrchestratorDashboardControl : UserControl
                 return;
             }
 
-            await persistenceService.ClearAllDataAsync().ConfigureAwait(true);
+            // PERFORMANCE FIX: Move expensive file I/O operations off UI thread to prevent dashboard click sluggishness
+            await Task.Run(async () => await persistenceService.ClearAllDataAsync());
 
             if (Log.Instance.IsTraceEnabled)
                 Log.Instance.Trace($"Learning data cleared via dashboard");

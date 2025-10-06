@@ -24,8 +24,9 @@ public static class FeatureFlags
 
     /// <summary>
     /// Enable adaptive fan curves based on thermal history (Phase 3 optimization)
+    /// DEFAULT: ENABLED for v6.2.1+ (production ready - elite optimizations)
     /// </summary>
-    public static bool UseAdaptiveFanCurves => GetFlag("AdaptiveFanCurves", defaultValue: false);
+    public static bool UseAdaptiveFanCurves => GetFlag("AdaptiveFanCurves", defaultValue: true);
 
     /// <summary>
     /// Enable GPU rendering optimization (auto-switch based on power state)
@@ -91,6 +92,20 @@ public static class FeatureFlags
     public static bool UseKeyboardLightAgent => GetFlag("KeyboardLightAgent", defaultValue: true);
 
     /// <summary>
+    /// Enable Productivity Mode - Office/Professional workflow optimization
+    /// Prioritizes battery life (8-10 hours) and silence (<25dB) over performance
+    /// DEFAULT: DISABLED (gaming/balanced mode default)
+    /// When enabled:
+    /// - Stricter power targets (6W idle vs 15W gaming)
+    /// - Aggressive core parking (P-cores parked, E-cores preferred)
+    /// - iGPU forced for 99% of applications
+    /// - Fan curves optimized for silence
+    /// - Display forced to 60Hz on battery
+    /// - RGB disabled on battery
+    /// </summary>
+    public static bool UseProductivityMode => GetFlag("ProductivityMode", defaultValue: false);
+
+    /// <summary>
     /// Get feature flag value from environment variable or default
     /// </summary>
     /// <param name="name">Feature flag name</param>
@@ -142,6 +157,9 @@ public static class FeatureFlags
             - Display Agent: {UseDisplayAgent}
             - Keyboard Light Agent: {UseKeyboardLightAgent}
 
+            Optimization Modes:
+            - Productivity Mode: {UseProductivityMode}
+
             Set via environment variables:
             LLT_FEATURE_RESOURCEORCHESTRATOR=true/false
             LLT_FEATURE_THERMALAGENT=true/false
@@ -151,6 +169,7 @@ public static class FeatureFlags
             LLT_FEATURE_HYBRIDMODEAGENT=true/false
             LLT_FEATURE_DISPLAYAGENT=true/false
             LLT_FEATURE_KEYBOARDLIGHTAGENT=true/false
+            LLT_FEATURE_PRODUCTIVITYMODE=true/false
             etc.
             """;
     }

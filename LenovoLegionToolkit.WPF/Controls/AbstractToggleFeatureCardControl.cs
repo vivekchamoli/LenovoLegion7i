@@ -116,10 +116,16 @@ public abstract class AbstractToggleFeatureCardControl<T> : AbstractRefreshingCo
             _toggle.IsEnabled = false;
 
             var state = toggle.IsChecked.Value ? OnState : OffState;
-            if (state.Equals(await feature.GetStateAsync()))
+
+            // PERFORMANCE FIX: Move expensive EC/WMI operations off UI thread to prevent dashboard click sluggishness
+            T currentState = default;
+            await Task.Run(async () => currentState = await feature.GetStateAsync());
+
+            if (state.Equals(currentState))
                 return;
 
-            await feature.SetStateAsync(state);
+            // PERFORMANCE FIX: Move expensive state change operations off UI thread
+            await Task.Run(async () => await feature.SetStateAsync(state));
         }
         catch (Exception ex)
         {

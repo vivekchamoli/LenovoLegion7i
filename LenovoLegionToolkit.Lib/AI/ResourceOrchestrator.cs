@@ -251,8 +251,19 @@ public class ResourceOrchestrator : IDisposable
             var contextBefore = context;
             var executionResult = await ExecuteActionsAsync(executionPlan, context, ct).ConfigureAwait(false);
 
-            // STEP 6: Gather post-execution context for learning
-            var contextAfter = await _contextStore.GatherContextAsync().ConfigureAwait(false);
+            // PERFORMANCE FIX: Only gather post-execution context if we have behavior analyzer (for learning)
+            // This avoids expensive sensor polling when learning is disabled
+            SystemContext contextAfter;
+            if (_behaviorAnalyzer != null && executionResult.ExecutedActions.Count > 0)
+            {
+                // STEP 6: Gather post-execution context for learning
+                contextAfter = await _contextStore.GatherContextAsync().ConfigureAwait(false);
+            }
+            else
+            {
+                // Reuse pre-execution context to avoid duplicate expensive sensor polling
+                contextAfter = context;
+            }
 
             executionResult.ContextBefore = contextBefore;
             executionResult.ContextAfter = contextAfter;

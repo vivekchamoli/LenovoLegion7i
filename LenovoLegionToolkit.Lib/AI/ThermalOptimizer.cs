@@ -91,6 +91,31 @@ public class ThermalOptimizer
     }
 
     /// <summary>
+    /// Apply a specific fan profile directly
+    /// </summary>
+    public async Task ApplyFanProfileAsync(FanProfile profile)
+    {
+        if (Log.Instance.IsTraceEnabled)
+            Log.Instance.Trace($"Applying fan profile: {profile}");
+
+        switch (profile)
+        {
+            case FanProfile.Quiet:
+                await ApplyQuietFanProfileAsync();
+                break;
+            case FanProfile.Balanced:
+                await _ecController.ApplyBalancedFanBehaviorAsync();
+                break;
+            case FanProfile.MaxPerformance:
+                await ApplyMaxPerformanceFanProfileAsync();
+                break;
+            default:
+                await _ecController.ApplyBalancedFanBehaviorAsync();
+                break;
+        }
+    }
+
+    /// <summary>
     /// Collect current thermal state from Gen 9 sensors
     /// </summary>
     private async Task<ThermalState> CollectThermalStateAsync()
@@ -172,12 +197,14 @@ public class ThermalOptimizer
             CpuPL2 = 140, // Turbo power
             GpuTGP = 140, // Max GPU power
             FanProfile = FanProfile.Aggressive,
+            VaporChamberMode = VaporChamberMode.Enhanced,  // Enhanced vapor chamber for sustained gaming
             Recommendations = new List<string>
             {
                 "Enable GPU overclock +150MHz core, +500MHz memory",
                 "Set Windows to High Performance mode",
                 "Disable CPU E-cores for gaming",
-                "Enable Resizable BAR"
+                "Enable Resizable BAR",
+                "Vapor chamber in Enhanced mode for optimal heat dissipation"
             }
         };
     }
@@ -193,11 +220,13 @@ public class ThermalOptimizer
             CpuPL2 = 115, // Lower turbo for consistency
             GpuTGP = 60,  // Reduced GPU power
             FanProfile = FanProfile.Quiet,
+            VaporChamberMode = VaporChamberMode.Standard,  // Standard mode for balanced efficiency
             Recommendations = new List<string>
             {
                 "Enable all CPU cores",
                 "Optimize for battery life",
-                "Enable Intel Speed Shift"
+                "Enable Intel Speed Shift",
+                "Vapor chamber in Standard mode for quiet operation"
             }
         };
     }
@@ -213,12 +242,14 @@ public class ThermalOptimizer
             CpuPL2 = 90,
             GpuTGP = 140, // Maximum GPU power for CUDA
             FanProfile = FanProfile.MaxPerformance,
+            VaporChamberMode = VaporChamberMode.Maximum,  // Maximum vapor chamber for sustained AI workloads
             Recommendations = new List<string>
             {
                 "Enable CUDA acceleration",
                 "Set GPU to Prefer Maximum Performance",
                 "Enable GPU memory overclocking",
-                "Disable GPU power saving features"
+                "Disable GPU power saving features",
+                "Vapor chamber in Maximum mode for extreme cooling"
             }
         };
     }
@@ -271,9 +302,12 @@ public class ThermalOptimizer
     private async Task ApplyOptimizationsAsync(OptimizationSettings settings)
     {
         if (Log.Instance.IsTraceEnabled)
-            Log.Instance.Trace($"Applying optimization settings: PL1={settings.CpuPL1}W, PL2={settings.CpuPL2}W, GPU TGP={settings.GpuTGP}W");
+            Log.Instance.Trace($"Applying optimization settings: PL1={settings.CpuPL1}W, PL2={settings.CpuPL2}W, GPU TGP={settings.GpuTGP}W, VaporChamber={settings.VaporChamberMode}");
 
         await _ecController.SetPowerLimitsAsync(settings.CpuPL1, settings.CpuPL2, settings.GpuTGP);
+
+        // Apply vapor chamber mode
+        await _ecController.SetVaporChamberModeAsync(settings.VaporChamberMode);
 
         // Apply fan profile if needed
         switch (settings.FanProfile)
@@ -282,11 +316,182 @@ public class ThermalOptimizer
                 await _ecController.FixFanCurveAsync(); // Use optimized curve
                 break;
             case FanProfile.Quiet:
-                // Implement quiet fan profile
+                await ApplyQuietFanProfileAsync();
                 break;
             case FanProfile.MaxPerformance:
-                // Implement max performance fan profile
+                await ApplyMaxPerformanceFanProfileAsync();
                 break;
+        }
+    }
+
+    /// <summary>
+    /// Apply quiet fan profile - prioritizes silence over cooling
+    /// Acoustic-optimized curve with gentle ramps and high hysteresis
+    /// </summary>
+    private async Task ApplyQuietFanProfileAsync()
+    {
+        try
+        {
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Applying Quiet fan profile...");
+
+            // Temperature points (10 points)
+            var tempPoints = new byte[]
+            {
+                30,  // 30°C
+                40,  // 40°C
+                50,  // 50°C
+                55,  // 55°C - start fans here
+                60,  // 60°C
+                70,  // 70°C
+                75,  // 75°C
+                80,  // 80°C
+                85,  // 85°C
+                95   // 95°C
+            };
+
+            // Quiet fan curve: Prioritize silence, allow higher temps
+            // Strategy: Keep fans off as long as possible, gentle ramps when needed
+            // Values in 0-255 range
+            var quietCpuSpeeds = new byte[]
+            {
+                0,    // 30°C: 0% (zero RPM)
+                0,    // 40°C: 0% (zero RPM)
+                0,    // 50°C: 0% (zero RPM - extended silence)
+                38,   // 55°C: 15% (very gentle start)
+                64,   // 60°C: 25% (still conservative)
+                102,  // 70°C: 40% (moderate)
+                140,  // 75°C: 55% (ramping up)
+                179,  // 80°C: 70% (safety priority)
+                217,  // 85°C: 85% (high priority)
+                255   // 95°C: 100% (emergency)
+            };
+
+            // GPU fan same curve for consistency
+            var quietGpuSpeeds = quietCpuSpeeds;
+
+            // Write temperature points
+            for (int i = 0; i < tempPoints.Length; i++)
+            {
+                await _ecController.WriteRegisterAsync((byte)(0xC0 + i), tempPoints[i]);
+            }
+
+            // Write CPU and GPU fan speeds
+            for (int i = 0; i < quietCpuSpeeds.Length; i++)
+            {
+                await _ecController.WriteRegisterAsync((byte)(0xB4 + i), quietCpuSpeeds[i]);  // CPU fan
+                await _ecController.WriteRegisterAsync((byte)(0xB5 + i), quietGpuSpeeds[i]);  // GPU fan
+            }
+
+            // Extended zero RPM mode with higher threshold (55°C)
+            await _ecController.SetZeroRPMEnabledAsync(true, 55);
+
+            // Slow fan acceleration for acoustic smoothness (3 seconds ramp)
+            await _ecController.SetFanAccelerationAsync(30);  // 30 = 3 second ramp
+
+            // High hysteresis to prevent oscillation (8°C delta)
+            await _ecController.SetFanHysteresisAsync(8);
+
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Quiet fan profile applied - prioritizing silence (zero RPM up to 55°C)");
+        }
+        catch (Exception ex)
+        {
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Failed to apply Quiet fan profile", ex);
+        }
+    }
+
+    /// <summary>
+    /// Apply max performance fan profile - prioritizes cooling over noise
+    /// Aggressive curve with fast response and low hysteresis
+    /// </summary>
+    private async Task ApplyMaxPerformanceFanProfileAsync()
+    {
+        try
+        {
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Applying Max Performance fan profile...");
+
+            // Temperature points (10 points)
+            var tempPoints = new byte[]
+            {
+                30,  // 30°C
+                40,  // 40°C
+                45,  // 45°C
+                50,  // 50°C
+                55,  // 55°C
+                60,  // 60°C
+                65,  // 65°C
+                70,  // 70°C
+                75,  // 75°C
+                80   // 80°C (already at max before throttle)
+            };
+
+            // Max Performance curve: Aggressive cooling, thermal headroom for boost
+            // Strategy: Keep temps as low as possible for sustained turbo boost
+            // Values in 0-255 range
+            var maxCpuSpeeds = new byte[]
+            {
+                51,   // 30°C: 20% (baseline cooling - no zero RPM)
+                77,   // 40°C: 30% (proactive)
+                102,  // 45°C: 40% (ramping up)
+                128,  // 50°C: 50% (moderate)
+                153,  // 55°C: 60% (aggressive)
+                179,  // 60°C: 70% (high cooling)
+                204,  // 65°C: 80% (very aggressive)
+                217,  // 70°C: 85% (maximum cooling)
+                230,  // 75°C: 90% (near full speed)
+                255   // 80°C: 100% (full blast)
+            };
+
+            // GPU fan slightly less aggressive for balance
+            var maxGpuSpeeds = new byte[]
+            {
+                38,   // 30°C: 15%
+                64,   // 40°C: 25%
+                89,   // 45°C: 35%
+                115,  // 50°C: 45%
+                140,  // 55°C: 55%
+                166,  // 60°C: 65%
+                191,  // 65°C: 75%
+                204,  // 70°C: 80%
+                217,  // 75°C: 85%
+                255   // 80°C: 100%
+            };
+
+            // Write temperature points
+            for (int i = 0; i < tempPoints.Length; i++)
+            {
+                await _ecController.WriteRegisterAsync((byte)(0xC0 + i), tempPoints[i]);
+            }
+
+            // Write fan curves
+            for (int i = 0; i < maxCpuSpeeds.Length; i++)
+            {
+                await _ecController.WriteRegisterAsync((byte)(0xB4 + i), maxCpuSpeeds[i]);  // CPU fan
+                await _ecController.WriteRegisterAsync((byte)(0xB5 + i), maxGpuSpeeds[i]);  // GPU fan
+            }
+
+            // Disable zero RPM mode - always spin fans for maximum cooling
+            await _ecController.SetZeroRPMEnabledAsync(false);
+
+            // Fast fan acceleration for immediate response (0.5 seconds ramp)
+            await _ecController.SetFanAccelerationAsync(5);
+
+            // Low hysteresis for quick response (2°C delta)
+            await _ecController.SetFanHysteresisAsync(2);
+
+            // Enable vapor chamber maximum mode for Gen 9
+            await _ecController.SetVaporChamberModeAsync(VaporChamberMode.Maximum);
+
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Max Performance fan profile applied - prioritizing cooling (no zero RPM, fast response)");
+        }
+        catch (Exception ex)
+        {
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Failed to apply Max Performance fan profile", ex);
         }
     }
 
@@ -399,6 +604,7 @@ public class OptimizationSettings
     public int CpuPL2 { get; set; }
     public int GpuTGP { get; set; }
     public FanProfile FanProfile { get; set; }
+    public VaporChamberMode VaporChamberMode { get; set; } = VaporChamberMode.Standard;
     public List<string> Recommendations { get; set; } = new();
 }
 
@@ -427,6 +633,41 @@ public enum FanProfile
     Balanced,
     Aggressive,
     MaxPerformance
+}
+
+/// <summary>
+/// Vapor chamber cooling modes for Gen 9 Legion 7i
+/// Different modes optimize heat dissipation for specific workloads
+/// </summary>
+public enum VaporChamberMode
+{
+    /// <summary>
+    /// Standard mode - balanced thermal transfer (0x00)
+    /// Best for: General use, light productivity
+    /// Power consumption: Low
+    /// </summary>
+    Standard = 0x00,
+
+    /// <summary>
+    /// Enhanced mode - increased vapor circulation (0x02)
+    /// Best for: Gaming, moderate workloads
+    /// Power consumption: Medium
+    /// </summary>
+    Enhanced = 0x02,
+
+    /// <summary>
+    /// Maximum mode - aggressive vapor chamber circulation (0x03)
+    /// Best for: Heavy rendering, AI workloads, sustained high power
+    /// Power consumption: High
+    /// </summary>
+    Maximum = 0x03,
+
+    /// <summary>
+    /// Eco mode - minimal vapor chamber activity (0x01)
+    /// Best for: Battery operation, low-power scenarios
+    /// Power consumption: Very low
+    /// </summary>
+    Eco = 0x01
 }
 
 #endregion

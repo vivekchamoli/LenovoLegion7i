@@ -114,7 +114,8 @@ public class OverclockDiscreteGPUControl : AbstractRefreshingControl
             var enabled = _toggle.IsChecked.Value;
             var (_, info) = _controller.GetState();
             _controller.SaveState(enabled, info);
-            await _controller.ApplyStateAsync(true);
+            // PERFORMANCE FIX: Move expensive GPU overclock operations off UI thread to prevent dashboard click sluggishness
+            await Task.Run(async () => await _controller.ApplyStateAsync(true));
         }
         catch (Exception ex)
         {

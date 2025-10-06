@@ -184,6 +184,40 @@ public class PowerUsagePredictor
 
         return $"ML model suggests {recommended} based on usage pattern";
     }
+
+    /// <summary>
+    /// Update ML model with actual power optimization outcomes for learning
+    /// This helps the predictor improve accuracy over time
+    /// </summary>
+    public void UpdatePredictionAccuracy(SystemContext beforeContext, SystemContext afterContext, int powerBefore, int powerAfter)
+    {
+        if (!FeatureFlags.UseMLAIController)
+            return;
+
+        try
+        {
+            // Record the actual outcome as a data point for future predictions
+            var dataPoint = new PowerUsageDataPoint
+            {
+                PowerMode = afterContext.PowerState.CurrentPowerMode,
+                CpuUsagePercent = afterContext.CurrentWorkload.CpuUtilizationPercent,
+                CpuTemperature = afterContext.ThermalState.CpuTemp,
+                IsOnBattery = afterContext.BatteryState.IsOnBattery,
+                TimeOfDay = DateTime.Now.TimeOfDay,
+                Timestamp = DateTime.UtcNow
+            };
+
+            RecordDataPoint(dataPoint);
+
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"ML learning: Recorded power optimization outcome (Before:{powerBefore}W -> After:{powerAfter}W)");
+        }
+        catch (Exception ex)
+        {
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Failed to update prediction accuracy", ex);
+        }
+    }
 }
 
 public readonly struct PowerUsageDataPoint

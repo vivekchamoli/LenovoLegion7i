@@ -23,7 +23,9 @@ public static class HybridModeControlFactory
 {
     public static async Task<AbstractRefreshingControl> GetControlAsync()
     {
-        var mi = await Compatibility.GetMachineInformationAsync();
+        // PERFORMANCE FIX: Query machine info on background thread, but return to UI thread for control creation
+        var mi = await Task.Run(async () => await Compatibility.GetMachineInformationAsync());
+        // ConfigureAwait(true) is default - ensures we return to UI (STA) thread for control creation
         return mi.Properties.SupportsIGPUMode
             ? new ComboBoxHybridModeControl()
             : new ToggleHybridModeControl();
@@ -120,7 +122,9 @@ public static class HybridModeControlFactory
 
         private async void InfoButton_Click(object sender, RoutedEventArgs e)
         {
-            var states = await Feature.GetAllStatesAsync();
+            // PERFORMANCE FIX: Move expensive feature state queries off UI thread to prevent dashboard click sluggishness
+            HybridModeState[] states = Array.Empty<HybridModeState>();
+            await Task.Run(async () => states = await Feature.GetAllStatesAsync());
             var window = new ExtendedHybridModeInfoWindow(states) { Owner = Window.GetWindow(this) };
             window.ShowDialog();
         }

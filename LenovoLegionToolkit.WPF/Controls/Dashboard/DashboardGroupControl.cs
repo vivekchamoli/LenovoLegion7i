@@ -9,11 +9,7 @@ namespace LenovoLegionToolkit.WPF.Controls.Dashboard;
 
 public class DashboardGroupControl : UserControl
 {
-    private readonly TaskCompletionSource _initializedTaskCompletionSource = new();
-
     private readonly DashboardGroup _dashboardGroup;
-
-    public Task InitializedTask => _initializedTaskCompletionSource.Task;
 
     public DashboardGroupControl(DashboardGroup dashboardGroup)
     {
@@ -24,6 +20,7 @@ public class DashboardGroupControl : UserControl
 
     private async void DashboardGroupControl_Initialized(object? sender, System.EventArgs e)
     {
+        // PERFORMANCE FIX: Show structure immediately, populate controls asynchronously on UI thread
         var stackPanel = new StackPanel { Margin = new(0, 0, 16, 0) };
 
         var textBlock = new TextBlock
@@ -37,16 +34,17 @@ public class DashboardGroupControl : UserControl
         AutomationProperties.SetName(textBlock, textBlock.Text);
         stackPanel.Children.Add(textBlock);
 
+        // CRITICAL: Set content immediately to show title - don't wait for controls
+        Content = stackPanel;
+
+        // Create controls asynchronously on UI thread (controls MUST be created on UI thread in WPF)
         var controlsTasks = _dashboardGroup.Items.Select(i => i.GetControlAsync());
         var controls = await Task.WhenAll(controlsTasks);
 
+        // Add controls to UI (already on UI thread, so this is safe)
         foreach (var control in controls.SelectMany(c => c))
         {
             stackPanel.Children.Add(control);
         }
-
-        Content = stackPanel;
-
-        _initializedTaskCompletionSource.TrySetResult();
     }
 }

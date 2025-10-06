@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using LenovoLegionToolkit.Lib.AutoListeners;
 using LenovoLegionToolkit.Lib.Utils;
@@ -23,7 +24,24 @@ public class WorkloadClassifier
     {
         "game", "steam", "epic", "origin", "uplay", "gog", "battle.net",
         "launcher", "minecraft", "fortnite", "valorant", "league",
-        "dota", "counter-strike", "cs2", "warzone", "apex", "overwatch"
+        "dota", "counter-strike", "cs2", "warzone", "apex", "overwatch",
+        "fifa", "elden", "cyberpunk", "gta", "witcher", "starfield"
+    };
+
+    // Known media playback process patterns (CRITICAL for movie watching optimization)
+    private static readonly HashSet<string> MediaPlaybackPatterns = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "vlc", "mpc-hc", "mpc-be", "potplayer", "kmplayer", "mpv",
+        "netflix", "disney", "prime", "hulu", "plex", "kodi",
+        "youtube", "twitch", "spotify", "foobar", "aimp", "musicbee",
+        "audirvana", "tidal", "deezer", "pandora"
+    };
+
+    // Known video conferencing patterns (Zoom, Teams, Discord)
+    private static readonly HashSet<string> VideoConferencingPatterns = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "zoom", "teams", "discord", "skype", "webex", "gotomeeting",
+        "slack", "meet", "hangouts", "whereby", "jitsi"
     };
 
     // Known productivity process patterns
@@ -31,15 +49,32 @@ public class WorkloadClassifier
     {
         "code", "studio", "intellij", "pycharm", "eclipse", "netbeans",
         "word", "excel", "powerpoint", "outlook", "teams", "slack",
-        "chrome", "firefox", "edge", "photoshop", "premiere", "illustrator",
-        "blender", "autocad", "solidworks"
+        "chrome", "firefox", "edge", "notion", "obsidian", "evernote",
+        "onenote", "acrobat", "reader", "notepad"
+    };
+
+    // Known content creation patterns
+    private static readonly HashSet<string> ContentCreationPatterns = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "photoshop", "premiere", "aftereffects", "illustrator", "lightroom",
+        "blender", "maya", "3dsmax", "cinema4d", "houdini", "resolve",
+        "vegas", "davinci", "final cut", "autocad", "solidworks", "fusion360",
+        "substance", "zbrush", "marmoset", "unreal", "unity"
     };
 
     // Known AI/ML process patterns
     private static readonly HashSet<string> AIWorkloadPatterns = new(StringComparer.OrdinalIgnoreCase)
     {
         "python", "pytorch", "tensorflow", "cuda", "jupyter",
-        "stable-diffusion", "comfyui", "automatic1111", "ollama"
+        "stable-diffusion", "comfyui", "automatic1111", "ollama",
+        "conda", "anaconda", "spyder", "rstudio"
+    };
+
+    // Known compiler/build tool patterns (heavy CPU burst workloads)
+    private static readonly HashSet<string> CompilerPatterns = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "cl.exe", "gcc", "g++", "clang", "rustc", "javac", "msbuild",
+        "gradle", "maven", "npm", "yarn", "webpack", "cargo", "dotnet"
     };
 
     public WorkloadClassifier(GameAutoListener gameAutoListener)
@@ -96,7 +131,7 @@ public class WorkloadClassifier
     {
         var scores = new Dictionary<WorkloadType, double>();
 
-        // Gaming classification
+        // Gaming classification (highest GPU priority)
         if (profile.GamingProcesses.Count > 0)
         {
             scores[WorkloadType.Gaming] = 0.95;
@@ -107,7 +142,33 @@ public class WorkloadClassifier
             scores[WorkloadType.Gaming] = 0.85;
         }
 
-        // AI/ML workload classification
+        // Media playback classification (CRITICAL for movie watching)
+        // Low CPU, very low GPU (hardware decode), specific processes
+        if (ContainsMediaPlaybackProcesses(profile.ActiveApplications))
+        {
+            scores[WorkloadType.MediaPlayback] = 0.90;
+
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Media playback detected - activating power-saving optimizations");
+        }
+        else if (profile.CpuUtilizationPercent < 30 &&
+                 context.GpuState.GpuUtilizationPercent < 15 &&
+                 profile.IsUserActive)
+        {
+            // Likely watching video in browser (YouTube, Netflix web)
+            scores[WorkloadType.MediaPlayback] = 0.70;
+        }
+
+        // Video conferencing (camera + microphone + low-medium CPU)
+        if (ContainsVideoConferencingProcesses(profile.ActiveApplications))
+        {
+            scores[WorkloadType.VideoConferencing] = 0.90;
+
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Video conferencing detected - balanced optimization");
+        }
+
+        // AI/ML workload classification (high GPU memory + CUDA processes)
         if (ContainsAIProcesses(profile.ActiveApplications))
         {
             scores[WorkloadType.AIWorkload] = 0.90;
@@ -118,12 +179,22 @@ public class WorkloadClassifier
             scores[WorkloadType.AIWorkload] = 0.70;
         }
 
-        // Content creation (high CPU + high GPU)
+        // Content creation (high CPU + high GPU + creation apps)
         if (profile.CpuUtilizationPercent > 60 &&
             context.GpuState.GpuUtilizationPercent > 40 &&
             ContainsContentCreationProcesses(profile.ActiveApplications))
         {
             scores[WorkloadType.ContentCreation] = 0.85;
+        }
+
+        // Compilation/build workload (CPU burst, specific compiler processes)
+        if (ContainsCompilerProcesses(profile.ActiveApplications) &&
+            profile.CpuUtilizationPercent > 70)
+        {
+            scores[WorkloadType.Compilation] = 0.88;
+
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Compilation detected - CPU boost optimization");
         }
 
         // Heavy productivity (high CPU, low GPU)
@@ -217,10 +288,39 @@ public class WorkloadClassifier
 
     private bool IsUserActive()
     {
-        // TODO: Implement proper user activity detection
-        // For now, assume active if not idle for long
-        return true;
+        try
+        {
+            // Get time since last input (keyboard/mouse)
+            var lastInputInfo = new LASTINPUTINFO();
+            lastInputInfo.cbSize = (uint)Marshal.SizeOf(lastInputInfo);
+
+            if (GetLastInputInfo(ref lastInputInfo))
+            {
+                var idleTime = Environment.TickCount - lastInputInfo.dwTime;
+                // Consider user active if input within last 5 minutes (300,000 ms)
+                return idleTime < 300000;
+            }
+
+            // If unable to get input info, assume active
+            return true;
+        }
+        catch
+        {
+            // On error, assume active
+            return true;
+        }
     }
+
+    // Windows API for user activity detection
+    [StructLayout(LayoutKind.Sequential)]
+    private struct LASTINPUTINFO
+    {
+        public uint cbSize;
+        public uint dwTime;
+    }
+
+    [DllImport("user32.dll")]
+    private static extern bool GetLastInputInfo(ref LASTINPUTINFO plii);
 
     private bool ContainsGamingProcesses(List<string> processes)
     {
@@ -239,10 +339,22 @@ public class WorkloadClassifier
 
     private bool ContainsContentCreationProcesses(List<string> processes)
     {
-        var contentCreationApps = new[] { "photoshop", "premiere", "aftereffects",
-            "blender", "maya", "3dsmax", "resolve", "vegas" };
-        return processes.Any(p => contentCreationApps.Any(app =>
-            p.IndexOf(app, StringComparison.OrdinalIgnoreCase) >= 0));
+        return processes.Any(p => ContainsPattern(p, ContentCreationPatterns));
+    }
+
+    private bool ContainsMediaPlaybackProcesses(List<string> processes)
+    {
+        return processes.Any(p => ContainsPattern(p, MediaPlaybackPatterns));
+    }
+
+    private bool ContainsVideoConferencingProcesses(List<string> processes)
+    {
+        return processes.Any(p => ContainsPattern(p, VideoConferencingPatterns));
+    }
+
+    private bool ContainsCompilerProcesses(List<string> processes)
+    {
+        return processes.Any(p => ContainsPattern(p, CompilerPatterns));
     }
 
     private bool ContainsPattern(string processName, HashSet<string> patterns)

@@ -25,10 +25,18 @@
 
                 <!-- Status Badge -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="16,0,0,0">
-                    <Border x:Name="_statusBadge" Padding="12,6" Background="#10B981" CornerRadius="4">
+                    <Border x:Name="_statusBadge" Padding="12,6" Background="{DynamicResource SystemFillColorSuccessBrush}" CornerRadius="4">
                         <StackPanel Orientation="Horizontal">
-                            <wpfui:SymbolIcon FontSize="14" Symbol="CheckmarkCircle24" Foreground="White" Margin="0,0,6,0" />
-                            <TextBlock x:Name="_statusText" FontSize="11" FontWeight="SemiBold" Foreground="White" Text="RUNNING" />
+                            <wpfui:SymbolIcon FontSize="14" Symbol="CheckmarkCircle24" Margin="0,0,6,0">
+                                <wpfui:SymbolIcon.Foreground>
+                                    <SolidColorBrush Color="{DynamicResource TextOnAccentFillColorPrimary}" />
+                                </wpfui:SymbolIcon.Foreground>
+                            </wpfui:SymbolIcon>
+                            <TextBlock x:Name="_statusText" FontSize="11" FontWeight="SemiBold" Text="RUNNING">
+                                <TextBlock.Foreground>
+                                    <SolidColorBrush Color="{DynamicResource TextOnAccentFillColorPrimary}" />
+                                </TextBlock.Foreground>
+                            </TextBlock>
                         </StackPanel>
                     </Border>
                 </StackPanel>
@@ -74,13 +82,13 @@
                 <Border Grid.Column="3" Padding="12,8" Margin="4,0,0,0" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" CornerRadius="6">
                     <StackPanel>
                         <TextBlock FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="BATTERY LIFE" HorizontalAlignment="Center" />
-                        <TextBlock x:Name="_batteryPredictionText" FontSize="16" FontWeight="Bold" Foreground="#10B981" Text="--:--" HorizontalAlignment="Center" Margin="0,4,0,0" />
+                        <TextBlock x:Name="_batteryPredictionText" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource SystemFillColorSuccessBrush}" Text="--:--" HorizontalAlignment="Center" Margin="0,4,0,0" />
                     </StackPanel>
                 </Border>
             </Grid>
 
             <!-- Battery Improvement Banner -->
-            <Border x:Name="_batteryImprovementBanner" Padding="12,8" Margin="0,0,0,12" Background="#1010B981" BorderBrush="#10B981" BorderThickness="1" CornerRadius="6">
+            <Border x:Name="_batteryImprovementBanner" Padding="12,8" Margin="0,0,0,12" Background="{DynamicResource SystemFillColorSuccessBackgroundBrush}" BorderBrush="{DynamicResource SystemFillColorSuccessBrush}" BorderThickness="1" CornerRadius="6">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
@@ -88,14 +96,14 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
-                    <wpfui:SymbolIcon Grid.Column="0" FontSize="18" Symbol="Battery1024" Foreground="#10B981" Margin="0,0,12,0" />
+                    <wpfui:SymbolIcon Grid.Column="0" FontSize="18" Symbol="Battery1024" Foreground="{DynamicResource SystemFillColorSuccessBrush}" Margin="0,0,12,0" />
 
                     <StackPanel Grid.Column="1">
-                        <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#10B981" Text="Battery Life Improvement" />
+                        <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource SystemFillColorSuccessBrush}" Text="Battery Life Improvement" />
                         <TextBlock FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="Compared to baseline performance" Margin="0,2,0,0" />
                     </StackPanel>
 
-                    <TextBlock x:Name="_batteryImprovementText" Grid.Column="2" FontSize="24" FontWeight="Bold" Foreground="#10B981" Text="+70%" VerticalAlignment="Center" />
+                    <TextBlock x:Name="_batteryImprovementText" Grid.Column="2" FontSize="24" FontWeight="Bold" Foreground="{DynamicResource SystemFillColorSuccessBrush}" Text="+70%" VerticalAlignment="Center" />
                 </Grid>
             </Border>
 
@@ -103,7 +111,7 @@
             <Expander Margin="0,0,0,8" IsExpanded="True">
                 <Expander.Header>
                     <StackPanel Orientation="Horizontal">
-                        <wpfui:SymbolIcon Margin="0,0,8,0" FontSize="16" Foreground="#6366F1" Symbol="Organization24" />
+                        <wpfui:SymbolIcon Margin="0,0,8,0" FontSize="16" Foreground="{DynamicResource SystemAccentColorPrimaryBrush}" Symbol="Organization24" />
                         <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="7 Autonomous Agents" />
                         <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}">
                             <Run Text="(" />
@@ -162,7 +170,7 @@
                         <TextBlock Text="Active" FontSize="9" />
                     </wpfui:Badge>
 
-                    <!-- HybridModeAgent (Phase 2) -->
+                    <!-- HybridModeAgent -->
                     <wpfui:SymbolIcon x:Name="_hybridModeAgentIcon" Grid.Row="4" Grid.Column="0" Margin="0,0,8,6" FontSize="14" Symbol="DualScreen24" />
                     <TextBlock Grid.Row="4" Grid.Column="1" Margin="0,0,8,6" VerticalAlignment="Center" FontSize="11" Text="Hybrid Mode Agent" />
                     <TextBlock x:Name="_hybridModeAgentActivity" Grid.Row="4" Grid.Column="2" Margin="0,0,12,6" VerticalAlignment="Center" FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="iGPU mode..." />
@@ -170,7 +178,7 @@
                         <TextBlock Text="Active" FontSize="9" />
                     </wpfui:Badge>
 
-                    <!-- DisplayAgent (Phase 2) -->
+                    <!-- DisplayAgent -->
                     <wpfui:SymbolIcon x:Name="_displayAgentIcon" Grid.Row="5" Grid.Column="0" Margin="0,0,8,6" FontSize="14" Symbol="BrightnessHigh24" />
                     <TextBlock Grid.Row="5" Grid.Column="1" Margin="0,0,8,6" VerticalAlignment="Center" FontSize="11" Text="Display Agent" />
                     <TextBlock x:Name="_displayAgentActivity" Grid.Row="5" Grid.Column="2" Margin="0,0,12,6" VerticalAlignment="Center" FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="50% @ 90Hz..." />
@@ -178,7 +186,7 @@
                         <TextBlock Text="Active" FontSize="9" />
                     </wpfui:Badge>
 
-                    <!-- KeyboardLightAgent (Phase 2) -->
+                    <!-- KeyboardLightAgent -->
                     <wpfui:SymbolIcon x:Name="_keyboardLightAgentIcon" Grid.Row="6" Grid.Column="0" Margin="0,0,8,0" FontSize="14" Symbol="Keyboard24" />
                     <TextBlock Grid.Row="6" Grid.Column="1" Margin="0,0,8,0" VerticalAlignment="Center" FontSize="11" Text="Keyboard Light Agent" />
                     <TextBlock x:Name="_keyboardLightAgentActivity" Grid.Row="6" Grid.Column="2" Margin="0,0,12,0" VerticalAlignment="Center" FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="50% brightness..." />
@@ -192,7 +200,7 @@
             <Expander Margin="0,0,0,8" IsExpanded="True">
                 <Expander.Header>
                     <StackPanel Orientation="Horizontal">
-                        <wpfui:SymbolIcon Margin="0,0,8,0" FontSize="16" Foreground="#F59E0B" Symbol="Database24" />
+                        <wpfui:SymbolIcon Margin="0,0,8,0" FontSize="16" Foreground="{DynamicResource SystemFillColorCautionBrush}" Symbol="Database24" />
                         <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="Pattern Learnings" />
                     </StackPanel>
                 </Expander.Header>
@@ -237,7 +245,7 @@
             <Expander Margin="0,0,0,8" IsExpanded="False">
                 <Expander.Header>
                     <StackPanel Orientation="Horizontal">
-                        <wpfui:SymbolIcon Margin="0,0,8,0" FontSize="16" Foreground="#EF4444" Symbol="Settings24" />
+                        <wpfui:SymbolIcon Margin="0,0,8,0" FontSize="16" Foreground="{DynamicResource SystemFillColorCriticalBrush}" Symbol="Settings24" />
                         <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="Manual Override Controls" />
                     </StackPanel>
                 </Expander.Header>
@@ -251,7 +259,7 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
 
-                        <wpfui:SymbolIcon Grid.Column="0" Margin="0,0,12,0" FontSize="20" Symbol="Power24" Foreground="#6366F1" />
+                        <wpfui:SymbolIcon Grid.Column="0" Margin="0,0,12,0" FontSize="20" Symbol="Power24" Foreground="{DynamicResource SystemAccentColorPrimaryBrush}" />
 
                         <StackPanel Grid.Column="1">
                             <TextBlock FontSize="12" FontWeight="SemiBold" Text="Enable Orchestrator" />

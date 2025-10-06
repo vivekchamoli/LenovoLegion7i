@@ -14,7 +14,8 @@ public partial class TurnOffMonitorsControl
     private async void TurnOffButton_Click(object sender, RoutedEventArgs e)
     {
         _turnOffButton.IsEnabled = false;
-        await _nativeWindowsMessageListener.TurnOffMonitorAsync();
+        // PERFORMANCE FIX: Move expensive monitor operations off UI thread to prevent dashboard click sluggishness
+        await Task.Run(async () => await _nativeWindowsMessageListener.TurnOffMonitorAsync());
         _turnOffButton.IsEnabled = true;
     }
 

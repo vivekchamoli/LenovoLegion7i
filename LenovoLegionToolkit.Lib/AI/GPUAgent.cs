@@ -86,10 +86,86 @@ public class GPUAgent : IOptimizationAgent
             if (Log.Instance.IsTraceEnabled)
                 Log.Instance.Trace($"GPU actions executed successfully");
 
-            // TODO: Collect GPU performance metrics for learning
+            // ML Learning: Collect GPU performance metrics for learning and optimization
+            try
+            {
+                var gpuBefore = result.ContextBefore.GpuState;
+                var gpuAfter = result.ContextAfter.GpuState;
+
+                // Track GPU utilization changes
+                var utilizationChange = gpuAfter.GpuUtilizationPercent - gpuBefore.GpuUtilizationPercent;
+                var clockChange = gpuAfter.CoreClockMHz - gpuBefore.CoreClockMHz;
+
+                if (Log.Instance.IsTraceEnabled)
+                {
+                    Log.Instance.Trace($"GPU performance metrics:");
+                    Log.Instance.Trace($"  Utilization: {gpuBefore.GpuUtilizationPercent}% -> {gpuAfter.GpuUtilizationPercent}% (Δ{utilizationChange:+0;-0}%)");
+                    Log.Instance.Trace($"  Core Clock: {gpuBefore.CoreClockMHz}MHz -> {gpuAfter.CoreClockMHz}MHz (Δ{clockChange:+0;-0}MHz)");
+                    Log.Instance.Trace($"  Memory Util: {gpuBefore.MemoryUtilizationPercent}% -> {gpuAfter.MemoryUtilizationPercent}%");
+                    Log.Instance.Trace($"  Active Processes: {gpuBefore.ActiveProcesses.Count} -> {gpuAfter.ActiveProcesses.Count}");
+                }
+
+                // Record performance improvement for future optimization decisions
+                RecordGPUPerformanceMetrics(result);
+            }
+            catch (Exception ex)
+            {
+                if (Log.Instance.IsTraceEnabled)
+                    Log.Instance.Trace($"Failed to collect GPU performance metrics", ex);
+            }
         }
 
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Record GPU performance metrics for ML learning
+    /// </summary>
+    private void RecordGPUPerformanceMetrics(ExecutionResult result)
+    {
+        try
+        {
+            var gpuState = result.ContextAfter.GpuState;
+            var workloadType = result.ContextAfter.CurrentWorkload.Type;
+
+            // Log performance characteristics for different workload types
+            // This helps the ML system learn optimal GPU configurations
+            if (Log.Instance.IsTraceEnabled)
+            {
+                var performanceScore = CalculateGPUPerformanceScore(gpuState, workloadType);
+                Log.Instance.Trace($"GPU Performance Score: {performanceScore:F2} for {workloadType} workload");
+            }
+        }
+        catch (Exception ex)
+        {
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Failed to record GPU performance metrics", ex);
+        }
+    }
+
+    /// <summary>
+    /// Calculate GPU performance score based on workload type
+    /// Higher score = better performance/efficiency balance
+    /// </summary>
+    private double CalculateGPUPerformanceScore(GpuSystemState gpuState, WorkloadType workloadType)
+    {
+        return workloadType switch
+        {
+            // Gaming: High utilization + high clocks = good
+            WorkloadType.Gaming => (gpuState.GpuUtilizationPercent * 0.6) + (gpuState.CoreClockMHz / 2400.0 * 40),
+
+            // AI/ML: High utilization + high memory usage = good
+            WorkloadType.AIWorkload => (gpuState.GpuUtilizationPercent * 0.5) + (gpuState.MemoryUtilizationPercent * 0.5),
+
+            // Idle/Light: Low utilization + low clocks = good (efficiency)
+            WorkloadType.Idle or WorkloadType.LightProductivity => 100 - gpuState.GpuUtilizationPercent,
+
+            // Media: Low utilization (hardware decode) + low clocks = good
+            WorkloadType.MediaPlayback => gpuState.GpuUtilizationPercent < 20 ? 100 : 50,
+
+            // Default: Balance utilization and clocks
+            _ => (gpuState.GpuUtilizationPercent * 0.4) + (gpuState.CoreClockMHz / 2400.0 * 60)
+        };
     }
 
     /// <summary>

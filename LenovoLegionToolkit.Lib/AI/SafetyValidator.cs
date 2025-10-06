@@ -12,6 +12,7 @@ namespace LenovoLegionToolkit.Lib.AI;
 public class SafetyValidator
 {
     private readonly UserOverrideManager _overrideManager;
+    private readonly AgentCoordinator? _agentCoordinator;
 
     // Legion 7i Gen 9 hardware safety limits
     private const int MAX_CPU_TEMP = 100;
@@ -26,9 +27,10 @@ public class SafetyValidator
     private const int MIN_DISPLAY_BRIGHTNESS = 10; // Never go completely dark
     private const int MAX_DISPLAY_BRIGHTNESS = 100;
 
-    public SafetyValidator(UserOverrideManager overrideManager)
+    public SafetyValidator(UserOverrideManager overrideManager, AgentCoordinator? agentCoordinator = null)
     {
         _overrideManager = overrideManager ?? throw new ArgumentNullException(nameof(overrideManager));
+        _agentCoordinator = agentCoordinator;
     }
 
     /// <summary>
@@ -39,6 +41,28 @@ public class SafetyValidator
         // Check user overrides first
         if (_overrideManager.IsOverrideActive(action.Target))
         {
+            // FIX #3: Broadcast coordination signal so all agents know user has overridden this control
+            if (_agentCoordinator != null)
+            {
+                _agentCoordinator.BroadcastSignal(new CoordinationSignal
+                {
+                    Type = CoordinationType.UserOverride,
+                    SourceAgent = "SafetyValidator",
+                    Timestamp = DateTime.Now,
+                    Context = context,
+                    Data = new Dictionary<string, object>
+                    {
+                        ["OverriddenTarget"] = action.Target,
+                        ["AttemptedAction"] = action.Type.ToString(),
+                        ["AttemptedValue"] = action.Value?.ToString() ?? "null",
+                        ["Reason"] = "User manual control active"
+                    }
+                });
+
+                if (Log.Instance.IsTraceEnabled)
+                    Log.Instance.Trace($"User override detected for {action.Target} - broadcasting to all agents");
+            }
+
             return ValidationResult.Reject($"User has manually controlled {action.Target} - respecting user preference");
         }
 

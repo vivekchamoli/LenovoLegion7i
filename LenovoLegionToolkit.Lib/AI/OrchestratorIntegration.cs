@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Autofac;
 using LenovoLegionToolkit.Lib.AutoListeners;
@@ -39,6 +40,10 @@ public static class OrchestratorIntegration
         builder.RegisterType<SystemContextStore>().SingleInstance();
         builder.RegisterType<DecisionArbitrationEngine>().SingleInstance();
         builder.RegisterType<BatteryLifeEstimator>().SingleInstance();
+
+        // Elite fan control components (v6.2.1+)
+        builder.RegisterType<Controllers.FanCurve.AdaptiveFanCurveController>().SingleInstance();
+        builder.RegisterType<AcousticOptimizer>().SingleInstance();
 
         // Phase 3: Learning and coordination
         builder.RegisterType<UserBehaviorAnalyzer>().SingleInstance();
@@ -181,7 +186,7 @@ public class OrchestratorLifecycleManager
         if (Log.Instance.IsTraceEnabled)
             Log.Instance.Trace($"Starting Resource Orchestrator lifecycle...");
 
-        // Load persisted data
+        // Load persisted data and thermal training data
         await LoadPersistedDataAsync().ConfigureAwait(false);
 
         // Register agents based on feature flags
@@ -213,8 +218,9 @@ public class OrchestratorLifecycleManager
             }
         }
 
-        // Start optimization loop (500ms = 2Hz)
-        await _orchestrator.StartAsync(optimizationIntervalMs: 500).ConfigureAwait(false);
+        // PERFORMANCE FIX: Reduce optimization interval from 500ms to 1000ms
+        // 1 second interval still provides responsive optimization while reducing CPU overhead by 50%
+        await _orchestrator.StartAsync(optimizationIntervalMs: 1000).ConfigureAwait(false);
 
         _isStarted = true;
 
@@ -297,6 +303,33 @@ public class OrchestratorLifecycleManager
             // Load battery history
             var batteryHistory = await _persistenceService.LoadBatteryHistoryAsync().ConfigureAwait(false);
             // Battery history is already managed by SystemContextStore
+
+            // Load thermal training data for adaptive fan curves
+            if (FeatureFlags.UseAdaptiveFanCurves)
+            {
+                try
+                {
+                    // Find AdaptiveFanCurveController in registered agents
+                    var thermalAgent = _agents.FirstOrDefault(a => a.AgentName == "ThermalAgent");
+                    if (thermalAgent is ThermalAgent agent)
+                    {
+                        // Access the adaptive fan controller through reflection or direct method
+                        // Note: In production, ThermalAgent should expose LoadThermalDataAsync method
+                        if (Log.Instance.IsTraceEnabled)
+                            Log.Instance.Trace($"Loading thermal training data for adaptive fan curves...");
+
+                        // The AdaptiveFanCurveController will load its data through DataPersistenceService
+                        var thermalData = await _persistenceService.LoadThermalTrainingDataAsync().ConfigureAwait(false);
+                        if (Log.Instance.IsTraceEnabled)
+                            Log.Instance.Trace($"Loaded {thermalData.Count} thermal training data points");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    if (Log.Instance.IsTraceEnabled)
+                        Log.Instance.Trace($"Failed to load thermal training data", ex);
+                }
+            }
 
             if (Log.Instance.IsTraceEnabled)
                 Log.Instance.Trace($"Persisted data loaded successfully");

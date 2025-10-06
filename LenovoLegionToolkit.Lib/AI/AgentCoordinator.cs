@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using LenovoLegionToolkit.Lib.Services;
 using LenovoLegionToolkit.Lib.Utils;
 
 namespace LenovoLegionToolkit.Lib.AI;
@@ -9,12 +10,19 @@ namespace LenovoLegionToolkit.Lib.AI;
 /// <summary>
 /// Agent Coordinator - Advanced multi-agent coordination and collaboration
 /// Enables agents to share information and coordinate complex actions
+/// Phase 3: Enhanced with Multi-Step Planner for conflict prediction
 /// </summary>
 public class AgentCoordinator
 {
     private readonly Dictionary<string, AgentState> _agentStates = new();
     private readonly List<CoordinationSignal> _activeSignals = new();
+    private readonly MultiStepPlanner? _multiStepPlanner;
     private readonly object _lock = new();
+
+    public AgentCoordinator(MultiStepPlanner? multiStepPlanner = null)
+    {
+        _multiStepPlanner = multiStepPlanner;
+    }
 
     /// <summary>
     /// Broadcast a coordination signal to all agents
@@ -25,8 +33,12 @@ public class AgentCoordinator
         {
             _activeSignals.Add(signal);
 
-            // Remove expired signals
-            _activeSignals.RemoveAll(s => (DateTime.Now - s.Timestamp).TotalMinutes > 5);
+            // PERFORMANCE FIX: Only remove expired signals periodically, not on every broadcast
+            // Clean up expired signals every 10 broadcasts to reduce overhead
+            if (_activeSignals.Count % 10 == 0)
+            {
+                _activeSignals.RemoveAll(s => (DateTime.Now - s.Timestamp).TotalMinutes > 5);
+            }
 
             if (Log.Instance.IsTraceEnabled)
                 Log.Instance.Trace($"Coordination signal broadcast: {signal.Type} from {signal.SourceAgent}");
@@ -137,6 +149,39 @@ public class AgentCoordinator
 
             return emergencySignals >= 2; // At least 2 agents signaling emergency
         }
+    }
+
+    /// <summary>
+    /// Validate proposal for conflicts (Phase 3: Multi-Step Planning)
+    /// </summary>
+    public ConflictAnalysis? ValidateProposal(AgentProposal proposal, SystemContext context)
+    {
+        if (_multiStepPlanner == null)
+            return null; // No conflict detection available
+
+        var analysis = _multiStepPlanner.AnalyzeProposal(proposal, context);
+
+        if (analysis.HasConflict && Log.Instance.IsTraceEnabled)
+        {
+            Log.Instance.Trace($"Conflict detected for {proposal.Agent}: {analysis.ConflictReason}");
+
+            if (analysis.ConflictingAgents.Count > 0)
+            {
+                Log.Instance.Trace($"Conflicting agents: {string.Join(", ", analysis.ConflictingAgents)}");
+            }
+        }
+
+        // Log multi-step predictions
+        if (analysis.PredictedSteps.Count > 0 && Log.Instance.IsTraceEnabled)
+        {
+            Log.Instance.Trace($"Multi-step predictions for {proposal.Agent}:");
+            foreach (var step in analysis.PredictedSteps.Take(3)) // Log first 3 steps
+            {
+                Log.Instance.Trace($"  Step {step.StepNumber}: {string.Join(", ", step.Predictions)}");
+            }
+        }
+
+        return analysis;
     }
 
     /// <summary>

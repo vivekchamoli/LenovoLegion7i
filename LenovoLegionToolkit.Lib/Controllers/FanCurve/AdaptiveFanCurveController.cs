@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using LenovoLegionToolkit.Lib.AI;
 using LenovoLegionToolkit.Lib.Utils;
 
 namespace LenovoLegionToolkit.Lib.Controllers.FanCurve;
@@ -13,8 +14,15 @@ namespace LenovoLegionToolkit.Lib.Controllers.FanCurve;
 public class AdaptiveFanCurveController
 {
     private readonly Dictionary<int, FanCurveDataPoint> _thermalHistory = new();
+    private readonly DataPersistenceService? _persistenceService;
     private const int MaxHistoryEntries = 500;
     private const int LearningThreshold = 50;
+    private DateTime _lastPersistenceLoad = DateTime.MinValue;
+
+    public AdaptiveFanCurveController(DataPersistenceService? persistenceService = null)
+    {
+        _persistenceService = persistenceService;
+    }
 
     /// <summary>
     /// Records thermal performance for a given temperature
@@ -204,6 +212,123 @@ public class AdaptiveFanCurveController
 
         return $"Learned optimal fan speed for {temp}°C is {recommended}%";
     }
+
+    /// <summary>
+    /// Get current data point count for UI/diagnostics
+    /// </summary>
+    public int GetDataPointCount()
+    {
+        return _thermalHistory.Values.Sum(x => x.SampleCount);
+    }
+
+    /// <summary>
+    /// Get total number of unique temperature points tracked
+    /// </summary>
+    public int GetUniqueTemperaturePoints()
+    {
+        return _thermalHistory.Count;
+    }
+
+    /// <summary>
+    /// Load thermal training data from persistence service
+    /// Should be called during initialization
+    /// </summary>
+    public async Task LoadThermalTrainingDataAsync()
+    {
+        if (_persistenceService == null || !FeatureFlags.UseAdaptiveFanCurves)
+            return;
+
+        try
+        {
+            var trainingData = await _persistenceService.LoadThermalTrainingDataAsync().ConfigureAwait(false);
+
+            if (trainingData.Count == 0)
+            {
+                if (Log.Instance.IsTraceEnabled)
+                    Log.Instance.Trace($"No thermal training data to load");
+                return;
+            }
+
+            // Rebuild thermal history from training data
+            _thermalHistory.Clear();
+            foreach (var dataPoint in trainingData)
+            {
+                RecordThermalPerformance(
+                    dataPoint.TempBefore,
+                    dataPoint.FanSpeedBefore * 100 / 255, // Convert 0-255 to percentage
+                    dataPoint.CoolingEffectiveness
+                );
+            }
+
+            _lastPersistenceLoad = DateTime.UtcNow;
+
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Loaded {trainingData.Count} thermal training data points, created {_thermalHistory.Count} unique temperature entries");
+        }
+        catch (Exception ex)
+        {
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Failed to load thermal training data", ex);
+        }
+    }
+
+    /// <summary>
+    /// Export thermal history as training data for persistence
+    /// </summary>
+    public List<ThermalTrainingDataPoint> ExportThermalHistory()
+    {
+        var exportData = new List<ThermalTrainingDataPoint>();
+
+        foreach (var kvp in _thermalHistory)
+        {
+            exportData.Add(new ThermalTrainingDataPoint
+            {
+                Timestamp = DateTime.UtcNow,
+                TempBefore = (byte)kvp.Value.Temperature,
+                TempAfter = (byte)kvp.Value.Temperature, // Approximation
+                FanSpeedBefore = (byte)(kvp.Value.FanSpeed * 255 / 100),
+                FanSpeedAfter = (byte)(kvp.Value.FanSpeed * 255 / 100),
+                Workload = WorkloadType.Unknown,
+                PowerLevel = 0,
+                CoolingEffectiveness = kvp.Value.CoolingEffectiveness,
+                DurationSeconds = 60
+            });
+        }
+
+        return exportData;
+    }
+
+    /// <summary>
+    /// Clear all learned thermal data (for reset/testing)
+    /// </summary>
+    public void ClearLearningData()
+    {
+        _thermalHistory.Clear();
+
+        if (Log.Instance.IsTraceEnabled)
+            Log.Instance.Trace($"Cleared all adaptive fan curve learning data");
+    }
+
+    /// <summary>
+    /// Get learning statistics for diagnostics
+    /// </summary>
+    public AdaptiveLearningStats GetLearningStats()
+    {
+        var totalSamples = _thermalHistory.Values.Sum(x => x.SampleCount);
+        var avgEffectiveness = _thermalHistory.Values.Any()
+            ? _thermalHistory.Values.Average(x => x.CoolingEffectiveness)
+            : 0;
+
+        return new AdaptiveLearningStats
+        {
+            TotalDataPoints = totalSamples,
+            UniqueTemperatures = _thermalHistory.Count,
+            AverageCoolingEffectiveness = avgEffectiveness,
+            IsLearningEnabled = FeatureFlags.UseAdaptiveFanCurves,
+            HasSufficientData = totalSamples >= LearningThreshold,
+            LastDataLoadTime = _lastPersistenceLoad
+        };
+    }
 }
 
 public struct FanCurveDataPoint
@@ -219,4 +344,22 @@ public readonly struct FanSpeedSuggestion
     public bool ShouldAdjust { get; init; }
     public int RecommendedFanSpeed { get; init; }
     public string Reason { get; init; }
+}
+
+/// <summary>
+/// Statistics about adaptive fan curve learning progress
+/// </summary>
+public readonly struct AdaptiveLearningStats
+{
+    public int TotalDataPoints { get; init; }
+    public int UniqueTemperatures { get; init; }
+    public double AverageCoolingEffectiveness { get; init; }
+    public bool IsLearningEnabled { get; init; }
+    public bool HasSufficientData { get; init; }
+    public DateTime LastDataLoadTime { get; init; }
+
+    public override string ToString()
+    {
+        return $"Adaptive Learning: {TotalDataPoints} samples across {UniqueTemperatures} temps, Avg Effectiveness: {AverageCoolingEffectiveness:F1}%, Sufficient: {HasSufficientData}";
+    }
 }

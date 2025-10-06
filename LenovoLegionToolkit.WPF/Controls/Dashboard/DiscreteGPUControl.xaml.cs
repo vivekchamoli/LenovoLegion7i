@@ -152,12 +152,14 @@ public partial class DiscreteGPUControl
     private async void KillAppsMenuItem_Click(object sender, RoutedEventArgs e)
     {
         _deactivateGPUButton.IsEnabled = false;
-        await _gpuController.KillGPUProcessesAsync();
+        // PERFORMANCE FIX: Move expensive GPU operations off UI thread to prevent dashboard click sluggishness
+        await Task.Run(async () => await _gpuController.KillGPUProcessesAsync());
     }
 
     private async void RestartGPUMenuItem_Click(object sender, RoutedEventArgs e)
     {
         _deactivateGPUButton.IsEnabled = false;
-        await _gpuController.RestartGPUAsync();
+        // PERFORMANCE FIX: Move expensive GPU operations off UI thread to prevent dashboard click sluggishness
+        await Task.Run(async () => await _gpuController.RestartGPUAsync());
     }
 }

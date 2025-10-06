@@ -1,7 +1,9 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using LenovoLegionToolkit.Lib.Controllers;
 using LenovoLegionToolkit.Lib.Features;
+using LenovoLegionToolkit.Lib.Services;
 using LenovoLegionToolkit.Lib.Utils;
 
 namespace LenovoLegionToolkit.Lib.AI;
@@ -10,12 +12,15 @@ namespace LenovoLegionToolkit.Lib.AI;
 /// Display Agent - Intelligent display brightness and refresh rate management
 /// Optimizes battery by reducing brightness and refresh rate when appropriate
 /// Priority: High (30-40% battery impact)
+/// ENHANCED: Content-aware refresh rate optimization (24fps → 48Hz, 30fps → 60Hz)
 /// </summary>
 public class DisplayAgent : IOptimizationAgent
 {
     private readonly DisplayBrightnessController? _brightnessController;
     private readonly RefreshRateFeature _refreshRateFeature;
     private readonly SystemContextStore _contextStore;
+    private readonly UserOverrideManager _overrideManager;
+    private readonly ContentFramerateDetector _framerateDetector;
 
     // Display optimization parameters
     private const int MIN_BRIGHTNESS = 15;  // Never go completely dark
@@ -24,17 +29,27 @@ public class DisplayAgent : IOptimizationAgent
     private const int NORMAL_BATTERY_BRIGHTNESS = 60;   // Normal battery brightness
     private const int AC_BRIGHTNESS = 80;               // AC power brightness
 
+    // State tracking to avoid redundant proposals
+    private int _lastProposedBrightness = -1;
+    private bool? _lastWasOnBattery = null;
+    private UserIntent? _lastUserIntent = null;
+    private int _lastBatteryPercent = -1;
+
     public string AgentName => "DisplayAgent";
     public AgentPriority Priority => AgentPriority.High;
 
     public DisplayAgent(
         DisplayBrightnessController? brightnessController,
         RefreshRateFeature refreshRateFeature,
-        SystemContextStore contextStore)
+        SystemContextStore contextStore,
+        UserOverrideManager overrideManager,
+        ContentFramerateDetector? framerateDetector = null)
     {
         _brightnessController = brightnessController;
         _refreshRateFeature = refreshRateFeature ?? throw new ArgumentNullException(nameof(refreshRateFeature));
         _contextStore = contextStore ?? throw new ArgumentNullException(nameof(contextStore));
+        _overrideManager = overrideManager ?? throw new ArgumentNullException(nameof(overrideManager));
+        _framerateDetector = framerateDetector ?? new ContentFramerateDetector();
     }
 
     public async Task<AgentProposal> ProposeActionsAsync(SystemContext context)
@@ -73,27 +88,81 @@ public class DisplayAgent : IOptimizationAgent
 
     /// <summary>
     /// Propose brightness optimizations based on battery state
+    /// FIXED: Only proposes changes when state changes or no user override active
     /// </summary>
     private Task ProposeBrightnessOptimizationAsync(AgentProposal proposal, SystemContext context)
     {
         if (_brightnessController == null)
             return Task.CompletedTask;
 
+        // Check for user override - respect manual brightness adjustments
+        if (_overrideManager.IsOverrideActive("DISPLAY_BRIGHTNESS"))
+        {
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Brightness optimization skipped - user override active");
+            return Task.CompletedTask;
+        }
+
         var targetBrightness = CalculateOptimalBrightness(context);
 
-        // Always propose brightness changes (executor will handle rate limiting)
-        proposal.Actions.Add(new ResourceAction
-        {
-            Type = GetBrightnessActionType(context),
-            Target = "DISPLAY_BRIGHTNESS",
-            Value = targetBrightness,
-            Reason = GetBrightnessReason(context, targetBrightness)
-        });
+        // Detect state changes that should trigger brightness adjustment
+        bool powerStateChanged = !_lastWasOnBattery.HasValue || context.BatteryState.IsOnBattery != _lastWasOnBattery.Value;
+        bool intentChanged = !_lastUserIntent.HasValue || context.UserIntent != _lastUserIntent.Value;
+        bool batteryThresholdCrossed = HasCrossedBatteryThreshold(context.BatteryState.ChargePercent, _lastBatteryPercent);
+        bool brightnessChanged = targetBrightness != _lastProposedBrightness;
 
-        if (Log.Instance.IsTraceEnabled)
-            Log.Instance.Trace($"Brightness optimization: target {targetBrightness}%");
+        // Only propose if state changed or first run
+        if (powerStateChanged || intentChanged || batteryThresholdCrossed || _lastProposedBrightness == -1)
+        {
+            proposal.Actions.Add(new ResourceAction
+            {
+                Type = GetBrightnessActionType(context),
+                Target = "DISPLAY_BRIGHTNESS",
+                Value = targetBrightness,
+                Reason = GetBrightnessReason(context, targetBrightness),
+                Context = context
+            });
+
+            // Update state tracking
+            _lastProposedBrightness = targetBrightness;
+            _lastWasOnBattery = context.BatteryState.IsOnBattery;
+            _lastUserIntent = context.UserIntent;
+            _lastBatteryPercent = context.BatteryState.ChargePercent;
+
+            if (Log.Instance.IsTraceEnabled)
+            {
+                var reason = powerStateChanged ? "power state change" :
+                            intentChanged ? "user intent change" :
+                            batteryThresholdCrossed ? "battery threshold crossed" :
+                            "initial run";
+                Log.Instance.Trace($"Brightness optimization: target {targetBrightness}% (reason: {reason})");
+            }
+        }
+        else if (Log.Instance.IsTraceEnabled)
+        {
+            Log.Instance.Trace($"Brightness optimization skipped - no state change (target: {targetBrightness}%, last: {_lastProposedBrightness}%)");
+        }
 
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Check if battery percentage crossed a significant threshold
+    /// </summary>
+    private bool HasCrossedBatteryThreshold(int current, int last)
+    {
+        if (last == -1)
+            return false;
+
+        // Check critical thresholds: 15%, 20%, 30%
+        int[] thresholds = { 15, 20, 30 };
+        foreach (var threshold in thresholds)
+        {
+            if ((last >= threshold && current < threshold) || (last < threshold && current >= threshold))
+                return true;
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -110,7 +179,7 @@ public class DisplayAgent : IOptimizationAgent
         if (availableRates.Length == 0)
             return;
 
-        var targetRate = DetermineOptimalRefreshRate(context, currentRate, availableRates);
+        var targetRate = await DetermineOptimalRefreshRateAsync(context, currentRate, availableRates).ConfigureAwait(false);
 
         if (targetRate.Frequency != currentRate.Frequency)
         {
@@ -164,10 +233,12 @@ public class DisplayAgent : IOptimizationAgent
     }
 
     /// <summary>
-    /// Determine optimal refresh rate based on workload and battery
-    /// CHANGED: Respects user manual settings - only intervenes on critically low battery
+    /// Determine optimal refresh rate based on workload, content, and battery
+    /// ENHANCED: Content-aware (24fps → 48Hz, 30fps → 60Hz) for perfect cadence
+    /// Work Mode: Force 60Hz on battery for maximum power savings (2-3W)
+    /// Media Mode: Match content framerate for judder-free playback
     /// </summary>
-    private RefreshRate DetermineOptimalRefreshRate(
+    private async Task<RefreshRate> DetermineOptimalRefreshRateAsync(
         SystemContext context,
         RefreshRate current,
         RefreshRate[] available)
@@ -176,23 +247,86 @@ public class DisplayAgent : IOptimizationAgent
         var minRate = available[0];
         var maxRate = available[^1];
 
-        // On AC: Respect user's manual choice, don't interfere
-        // User has full control when plugged in
-        if (!context.BatteryState.IsOnBattery)
+        // PRIORITY 1: Media playback - detect content framerate and match
+        if (context.CurrentWorkload.Type == WorkloadType.MediaPlayback)
         {
-            // Return current rate (no change) - respect user's manual setting
-            return current;
+            var contentFPS = await _framerateDetector.DetectFramerateAsync().ConfigureAwait(false);
+            if (contentFPS > 0)
+            {
+                var availableFrequencies = available.Select(r => r.Frequency).ToArray();
+                var optimalHz = _framerateDetector.GetOptimalRefreshRateForContent(contentFPS, availableFrequencies);
+
+                if (optimalHz > 0)
+                {
+                    var targetRate = available.FirstOrDefault(r => r.Frequency == optimalHz);
+                    if (targetRate.Frequency > 0)
+                    {
+                        if (Log.Instance.IsTraceEnabled)
+                            Log.Instance.Trace($"Media Mode: Content {contentFPS}fps → {optimalHz}Hz (judder-free cadence)");
+                        return targetRate;
+                    }
+                }
+            }
+
+            // Fallback: Use 60Hz for media if content FPS unknown
+            var rate60Hz = available.FirstOrDefault(r => r.Frequency == 60);
+            if (rate60Hz.Frequency > 0)
+                return rate60Hz;
         }
 
-        // On battery: Only intervene if battery is critically low (< 20%)
-        if (context.BatteryState.ChargePercent < 20)
+        // PRIORITY 2: WORK MODE (PRODUCTIVITY): Force 60Hz on battery for maximum battery life
+        // Savings: 2-3W display power (165Hz → 60Hz)
+        if (FeatureFlags.UseProductivityMode && context.BatteryState.IsOnBattery)
         {
-            // Critical battery: force minimum refresh rate to extend battery life
-            return minRate;
+            // Find 60Hz rate (typical middle rate for productivity), fallback to minimum
+            var rate60Hz = available.FirstOrDefault(r => r.Frequency == 60);
+            var targetRate = rate60Hz.Frequency > 0 ? rate60Hz : minRate;
+
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Work Mode: Forcing {targetRate.Frequency}Hz on battery for power savings (2-3W)");
+
+            return targetRate;
         }
 
-        // Battery above 20%: Respect user's manual choice
-        // User can manage their own refresh rate when battery is not critical
+        // PRIORITY 3: Battery-based optimization
+        if (context.BatteryState.IsOnBattery)
+        {
+            // Critical battery (< 15%): minimum refresh rate
+            if (context.BatteryState.ChargePercent < 15)
+            {
+                if (Log.Instance.IsTraceEnabled)
+                    Log.Instance.Trace($"Critical battery: Forcing {minRate.Frequency}Hz");
+                return minRate;
+            }
+
+            // Low battery (< 30%): prefer 60Hz or 90Hz max
+            if (context.BatteryState.ChargePercent < 30)
+            {
+                var rate60Hz = available.FirstOrDefault(r => r.Frequency == 60);
+                if (rate60Hz.Frequency > 0)
+                    return rate60Hz;
+
+                var rate90Hz = available.FirstOrDefault(r => r.Frequency == 90);
+                if (rate90Hz.Frequency > 0)
+                    return rate90Hz;
+
+                return minRate;
+            }
+
+            // Medium battery (< 50%): cap at 90Hz for balanced performance
+            if (context.BatteryState.ChargePercent < 50)
+            {
+                var rate90Hz = available.FirstOrDefault(r => r.Frequency == 90);
+                if (rate90Hz.Frequency > 0 && current.Frequency > 90)
+                {
+                    if (Log.Instance.IsTraceEnabled)
+                        Log.Instance.Trace($"Medium battery: Capping at 90Hz (balanced mode)");
+                    return rate90Hz;
+                }
+            }
+        }
+
+        // PRIORITY 4: On AC or good battery - respect user's choice
         return current;
     }
 

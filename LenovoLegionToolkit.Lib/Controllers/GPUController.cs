@@ -23,6 +23,7 @@ public class GPUController
     private List<Process> _processes = [];
     private string? _gpuInstanceId;
     private string? _performanceState;
+    private string? _deviceName;
 
     public event EventHandler<GPUStatus>? Refreshed;
     public bool IsStarted { get => _refreshTask != null; }
@@ -59,7 +60,7 @@ public class GPUController
         using (await _lock.LockAsync().ConfigureAwait(false))
         {
             await RefreshLoopAsync(0, 0, CancellationToken.None).ConfigureAwait(false);
-            return new GPUStatus(_state, _performanceState, _processes);
+            return new GPUStatus(_state, _performanceState, _processes, _deviceName);
         }
     }
 
@@ -191,7 +192,7 @@ public class GPUController
                     if (Log.Instance.IsTraceEnabled)
                         Log.Instance.Trace($"Refreshed");
 
-                    Refreshed?.Invoke(this, new GPUStatus(_state, _performanceState, _processes));
+                    Refreshed?.Invoke(this, new GPUStatus(_state, _performanceState, _processes, _deviceName));
                 }
 
                 if (interval > 0)
@@ -238,6 +239,16 @@ public class GPUController
                 Log.Instance.Trace($"GPU present [state={_state}, processes.Count={_processes.Count}, gpuInstanceId={_gpuInstanceId}]");
 
             return;
+        }
+
+        // Get GPU device name for model-specific optimizations (RTX 4060, RTX 4070, etc.)
+        try
+        {
+            _deviceName = gpu.FullName;
+        }
+        catch
+        {
+            _deviceName = null;
         }
 
         try

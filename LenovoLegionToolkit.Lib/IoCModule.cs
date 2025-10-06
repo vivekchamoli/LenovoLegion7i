@@ -174,8 +174,16 @@ public class IoCModule : Module
         builder.RegisterType<AI.EliteProfileHandler>().As<AI.IActionHandler>().SingleInstance();
 
         // Elite hardware control (advanced power management)
-        // These components work without drivers (ProcessPriority, WindowsPower)
-        // Optional components gracefully degrade if drivers unavailable (MSR, NVAPI, PCIe)
+        // Core components (always available)
+        builder.RegisterType<System.ProcessPriorityManager>().SingleInstance();
+        builder.RegisterType<System.WindowsPowerOptimizer>().SingleInstance();
+
+        // Advanced components (driver-dependent, graceful degradation)
+        builder.RegisterType<System.MSRAccess>().SingleInstance();
+        builder.RegisterType<System.NVAPIIntegration>().SingleInstance();
+        builder.RegisterType<System.HardwareAbstractionLayer>().SingleInstance();
+
+        // Elite manager (coordinates all advanced features)
         builder.RegisterType<System.EliteFeaturesManager>().SingleInstance();
 
         // Orchestrator and integration
@@ -201,6 +209,8 @@ public class IoCModule : Module
         builder.Register<CPUCoreManager>(); // Phase 4: CPU per-core management
         builder.Register<MemoryPowerManager>(); // Phase 4: Memory power management
         builder.Register<System.PCIePowerManager>(); // Phase 4: PCIe/NVMe power management
+        builder.Register<Services.ContentFramerateDetector>(); // Elite: Media framerate detection
+        builder.Register<AI.AcousticOptimizer>().SingleInstance(); // Elite: Fan acoustic optimization
         builder.Register<WorkModePreset>(); // Productivity Mode: One-click work optimization
 
         builder.Register<SunriseSunset>();

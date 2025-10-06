@@ -166,7 +166,14 @@ public partial class SettingsPage
 
         _onBatterySinceResetToggle.Visibility = Visibility.Visible;
 
-        // Phase 4: Advanced Optimizations
+        // AI Power Management
+        _workModeToggle.IsChecked = FeatureFlags.UseProductivityMode;
+        _resourceOrchestratorToggle.IsChecked = FeatureFlags.UseResourceOrchestrator;
+        _hybridModeAgentToggle.IsChecked = FeatureFlags.UseHybridModeAgent;
+        _thermalAgentToggle.IsChecked = FeatureFlags.UseThermalAgent;
+        _powerAgentToggle.IsChecked = FeatureFlags.UsePowerAgent;
+
+        // Advanced Optimizations
         _adaptiveFanCurvesToggle.IsChecked = FeatureFlags.UseAdaptiveFanCurves;
         _mlAiControllerToggle.IsChecked = FeatureFlags.UseMLAIController;
         _reactiveSensorsToggle.IsChecked = FeatureFlags.UseReactiveSensors;
@@ -190,6 +197,11 @@ public partial class SettingsPage
         _synchronizeBrightnessToAllPowerPlansToggle.Visibility = Visibility.Visible;
         _godModeFnQSwitchableToggle.Visibility = Visibility.Visible;
         _powerModeMappingComboBox.Visibility = Visibility.Visible;
+        _workModeToggle.Visibility = Visibility.Visible;
+        _resourceOrchestratorToggle.Visibility = Visibility.Visible;
+        _hybridModeAgentToggle.Visibility = Visibility.Visible;
+        _thermalAgentToggle.Visibility = Visibility.Visible;
+        _powerAgentToggle.Visibility = Visibility.Visible;
         _adaptiveFanCurvesToggle.Visibility = Visibility.Visible;
         _mlAiControllerToggle.Visibility = Visibility.Visible;
         _reactiveSensorsToggle.Visibility = Visibility.Visible;
@@ -750,6 +762,67 @@ public partial class SettingsPage
         Environment.SetEnvironmentVariable("LLT_FEATURE_OBJECTPOOLING", state.ToString(), EnvironmentVariableTarget.User);
         _ = SnackbarHelper.ShowAsync("Object Pooling",
             $"Feature {(state ? "enabled" : "disabled")}. Restart application to apply changes.",
+            SnackbarType.Info);
+    }
+
+    private void ResourceOrchestratorToggle_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isRefreshing)
+            return;
+
+        var state = _resourceOrchestratorToggle.IsChecked ?? false;
+        Environment.SetEnvironmentVariable("LLT_FEATURE_RESOURCEORCHESTRATOR", state.ToString(), EnvironmentVariableTarget.User);
+        _ = SnackbarHelper.ShowAsync("Resource Orchestrator",
+            $"Master AI controller {(state ? "enabled" : "disabled")}. Restart application to apply changes.",
+            SnackbarType.Info);
+    }
+
+    private void HybridModeAgentToggle_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isRefreshing)
+            return;
+
+        var state = _hybridModeAgentToggle.IsChecked ?? false;
+        Environment.SetEnvironmentVariable("LLT_FEATURE_HYBRIDMODEAGENT", state.ToString(), EnvironmentVariableTarget.User);
+        _ = SnackbarHelper.ShowAsync("Hybrid Mode Agent",
+            $"Predictive GPU switching {(state ? "enabled" : "disabled")}. Restart application to apply changes.",
+            SnackbarType.Info);
+    }
+
+    private void ThermalAgentToggle_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isRefreshing)
+            return;
+
+        var state = _thermalAgentToggle.IsChecked ?? false;
+        Environment.SetEnvironmentVariable("LLT_FEATURE_THERMALAGENT", state.ToString(), EnvironmentVariableTarget.User);
+        _ = SnackbarHelper.ShowAsync("Thermal Agent",
+            $"Thermal override {(state ? "enabled" : "disabled")}. Restart application to apply changes.",
+            SnackbarType.Info);
+    }
+
+    private void PowerAgentToggle_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isRefreshing)
+            return;
+
+        var state = _powerAgentToggle.IsChecked ?? false;
+        Environment.SetEnvironmentVariable("LLT_FEATURE_POWERAGENT", state.ToString(), EnvironmentVariableTarget.User);
+        _ = SnackbarHelper.ShowAsync("Power Agent",
+            $"CPU/Memory optimization {(state ? "enabled" : "disabled")}. Restart application to apply changes.",
+            SnackbarType.Info);
+    }
+
+    private void WorkModeToggle_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isRefreshing)
+            return;
+
+        var state = _workModeToggle.IsChecked ?? false;
+        Environment.SetEnvironmentVariable("LLT_FEATURE_PRODUCTIVITYMODE", state.ToString(), EnvironmentVariableTarget.User);
+        _ = SnackbarHelper.ShowAsync("Work Mode",
+            $"Productivity optimization {(state ? "enabled" : "disabled")}. Restart application to apply changes.\n" +
+            $"When enabled: 8-10h battery, <25dB silence, iGPU forced, E-core preference.",
             SnackbarType.Info);
     }
 }

@@ -136,6 +136,52 @@ public class IoCModule : Module
         builder.Register<PowerUsagePredictor>();
         builder.Register<ReactiveSensorsController>(true);
 
+        // Elite AI/ML Thermal Management System - Multi-Agent Architecture v6.2.2
+        // Core services (singletons for state preservation)
+        builder.RegisterType<AI.DataPersistenceService>().SingleInstance();
+        builder.RegisterType<AI.SafetyValidator>().SingleInstance();
+        builder.RegisterType<AI.ActionExecutor>().SingleInstance();
+        builder.RegisterType<AI.WorkloadClassifier>().SingleInstance();
+        builder.RegisterType<AI.SystemContextStore>().SingleInstance();
+        builder.RegisterType<AI.BatteryLifeEstimator>().SingleInstance();
+        builder.RegisterType<AI.UserBehaviorAnalyzer>().SingleInstance();
+        builder.RegisterType<AI.UserPreferenceTracker>().SingleInstance();
+        builder.RegisterType<AI.AgentCoordinator>().SingleInstance();
+        builder.RegisterType<AI.ThermalOptimizer>().SingleInstance();
+        builder.RegisterType<AI.AcousticOptimizer>().SingleInstance();
+        builder.RegisterType<AI.UserOverrideManager>().SingleInstance();
+        builder.RegisterType<AI.DecisionArbitrationEngine>().SingleInstance();
+
+        // Multi-agent system (register with interface for array injection)
+        builder.RegisterType<AI.ThermalAgent>().As<AI.IOptimizationAgent>().SingleInstance();
+        builder.RegisterType<AI.PowerAgent>().As<AI.IOptimizationAgent>().SingleInstance();
+        builder.RegisterType<AI.GPUAgent>().As<AI.IOptimizationAgent>().SingleInstance();
+        builder.RegisterType<AI.BatteryAgent>().As<AI.IOptimizationAgent>().SingleInstance();
+        builder.RegisterType<AI.HybridModeAgent>().As<AI.IOptimizationAgent>().SingleInstance();
+        builder.RegisterType<AI.DisplayAgent>().As<AI.IOptimizationAgent>().SingleInstance();
+        builder.RegisterType<AI.KeyboardLightAgent>().As<AI.IOptimizationAgent>().SingleInstance();
+
+        // Action handlers (register with interface for array injection)
+        builder.RegisterType<AI.CPUPowerLimitHandler>().As<AI.IActionHandler>().SingleInstance();
+        builder.RegisterType<AI.GPUControlHandler>().As<AI.IActionHandler>().SingleInstance();
+        builder.RegisterType<AI.FanControlHandler>().As<AI.IActionHandler>().SingleInstance();
+        builder.RegisterType<AI.PowerModeHandler>().As<AI.IActionHandler>().SingleInstance();
+        builder.RegisterType<AI.BatteryControlHandler>().As<AI.IActionHandler>().SingleInstance();
+        builder.RegisterType<AI.HybridModeHandler>().As<AI.IActionHandler>().SingleInstance();
+        builder.RegisterType<AI.DisplayControlHandler>().As<AI.IActionHandler>().SingleInstance();
+        builder.RegisterType<AI.KeyboardBacklightHandler>().As<AI.IActionHandler>().SingleInstance();
+        builder.RegisterType<AI.CoordinationHandler>().As<AI.IActionHandler>().SingleInstance();
+        builder.RegisterType<AI.EliteProfileHandler>().As<AI.IActionHandler>().SingleInstance();
+
+        // Elite hardware control (advanced power management)
+        // These components work without drivers (ProcessPriority, WindowsPower)
+        // Optional components gracefully degrade if drivers unavailable (MSR, NVAPI, PCIe)
+        builder.RegisterType<System.EliteFeaturesManager>().SingleInstance();
+
+        // Orchestrator and integration
+        builder.RegisterType<AI.ResourceOrchestrator>().SingleInstance();
+        builder.RegisterType<AI.OrchestratorLifecycleManager>().SingleInstance();
+
         builder.Register<UpdateChecker>();
         builder.Register<WarrantyChecker>();
 
@@ -144,6 +190,18 @@ public class IoCModule : Module
         builder.Register<VantagePackageDownloader>();
 
         builder.Register<HWiNFOIntegration>();
+
+        // Centralized state and timing services (v6.3.1+)
+        builder.Register<BatteryStateService>();
+        builder.Register<SystemTickService>();
+        builder.Register<GPUTransitionManager>(); // Phase 1: GPU transition management
+        builder.Register<DisplayTopologyService>(); // Phase 1: Display topology awareness
+        builder.Register<ProcessLaunchMonitor>(); // Phase 2: Predictive GPU switching
+        builder.Register<MultiStepPlanner>(); // Phase 3: Multi-step conflict avoidance
+        builder.Register<CPUCoreManager>(); // Phase 4: CPU per-core management
+        builder.Register<MemoryPowerManager>(); // Phase 4: Memory power management
+        builder.Register<System.PCIePowerManager>(); // Phase 4: PCIe/NVMe power management
+        builder.Register<WorkModePreset>(); // Productivity Mode: One-click work optimization
 
         builder.Register<SunriseSunset>();
 

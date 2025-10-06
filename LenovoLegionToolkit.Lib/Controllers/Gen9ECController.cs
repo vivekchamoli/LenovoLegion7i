@@ -5,6 +5,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using LenovoLegionToolkit.Lib.AI;
 using LenovoLegionToolkit.Lib.Utils;
 
 namespace LenovoLegionToolkit.Lib.Controllers;
@@ -84,6 +85,64 @@ public class Gen9ECController : IDisposable
     private const ushort EC_DATA_PORT = 0x62;
     private const int EC_TIMEOUT_MS = 1000;
 
+    // Fan speed conversion constants
+    private const int FAN_SPEED_MIN = 0;
+    private const int FAN_SPEED_MAX = 255;
+    private const int FAN_PERCENT_MIN = 0;
+    private const int FAN_PERCENT_MAX = 100;
+
+    // Legion 7i Gen 9 fan specifications
+    private const int FAN_MAX_RPM = 5500;  // Maximum RPM for Gen 9 dual fans
+    private const int FAN_MIN_RPM = 0;     // Zero RPM mode supported
+
+    /// <summary>
+    /// Convert fan speed percentage (0-100) to EC register value (0-255)
+    /// </summary>
+    public static byte PercentageToFanSpeed(int percentage)
+    {
+        var clamped = Math.Clamp(percentage, FAN_PERCENT_MIN, FAN_PERCENT_MAX);
+        return (byte)(clamped * FAN_SPEED_MAX / FAN_PERCENT_MAX);
+    }
+
+    /// <summary>
+    /// Convert EC register fan speed (0-255) to percentage (0-100)
+    /// </summary>
+    public static int FanSpeedToPercentage(byte fanSpeed)
+    {
+        return fanSpeed * FAN_PERCENT_MAX / FAN_SPEED_MAX;
+    }
+
+    /// <summary>
+    /// Convert EC fan speed (0-255) to approximate RPM
+    /// Based on Legion 7i Gen 9 fan characteristics
+    /// </summary>
+    public static int FanSpeedToRPM(byte fanSpeed)
+    {
+        if (fanSpeed == 0)
+            return 0;
+
+        // Non-linear fan curve - fans don't spin below ~20% (51 on 0-255 scale)
+        if (fanSpeed < 51)
+            return 0;
+
+        // Above 20%, approximately linear scaling to 5500 RPM
+        return (int)((fanSpeed - 51) * FAN_MAX_RPM / (FAN_SPEED_MAX - 51));
+    }
+
+    /// <summary>
+    /// Validate fan speed value before writing to EC
+    /// </summary>
+    private bool ValidateFanSpeed(byte fanSpeed, string context)
+    {
+        if (fanSpeed > FAN_SPEED_MAX)
+        {
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Invalid fan speed {fanSpeed} in {context} - exceeds maximum {FAN_SPEED_MAX}");
+            return false;
+        }
+        return true;
+    }
+
     /// <summary>
     /// FIX #1: Power throttling at 95°C for Legion Slim 7i Gen 9
     /// Increases thermal threshold for i9-14900HX with vapor chamber optimization
@@ -121,6 +180,7 @@ public class Gen9ECController : IDisposable
     /// <summary>
     /// FIX #2: Incorrect fan curve causing premature throttling
     /// Implements optimized dual-fan curve for Gen 9 vapor chamber system
+    /// Fan curve structure: 10 temperature points, 10 corresponding fan speed points
     /// </summary>
     public async Task<bool> FixFanCurveAsync()
     {
@@ -129,36 +189,90 @@ public class Gen9ECController : IDisposable
             if (Log.Instance.IsTraceEnabled)
                 Log.Instance.Trace($"Applying Gen 9 optimized fan curve...");
 
-            // Optimized fan curve for Gen 9 dual fan system
-            var fanCurve = new byte[]
+            // Temperature points (10 points from 30°C to 95°C)
+            var tempPoints = new byte[]
             {
-                0x00, 0x32,  // 0-50°C: 0% speed
-                0x32, 0x3C,  // 50-60°C: 30% speed
-                0x3C, 0x46,  // 60-70°C: 50% speed
-                0x46, 0x50,  // 70-80°C: 70% speed
-                0x50, 0x5A,  // 80-90°C: 85% speed
-                0x5A, 0x64,  // 90-100°C: 100% speed
+                30,  // 30°C
+                40,  // 40°C
+                50,  // 50°C
+                55,  // 55°C
+                60,  // 60°C
+                70,  // 70°C
+                75,  // 75°C
+                80,  // 80°C
+                85,  // 85°C
+                95   // 95°C (near throttle point)
             };
 
-            // Apply to both fans with different curves
-            for (int i = 0; i < fanCurve.Length; i += 2)
+            // CPU Fan curve (more aggressive for CPU cooling)
+            // Values 0-255 (0% to 100% mapped to byte range)
+            var cpuFanSpeeds = new byte[]
             {
-                // Fan 1 (CPU focused)
-                await WriteRegisterAsync((byte)(Gen9Registers["FAN_CURVE_CPU"] + i/2), fanCurve[i]);
+                0,    // 30°C: 0% (zero RPM)
+                0,    // 40°C: 0% (zero RPM)
+                51,   // 50°C: 20% (fan start point)
+                77,   // 55°C: 30%
+                102,  // 60°C: 40%
+                153,  // 70°C: 60%
+                179,  // 75°C: 70%
+                204,  // 80°C: 80%
+                230,  // 85°C: 90%
+                255   // 95°C: 100% (full speed)
+            };
 
-                // Fan 2 (GPU focused, slightly less aggressive)
-                await WriteRegisterAsync((byte)(Gen9Registers["FAN_CURVE_GPU"] + i/2),
-                    (byte)(fanCurve[i] * 0.9));
+            // GPU Fan curve (slightly less aggressive, optimized for GPU thermals)
+            var gpuFanSpeeds = new byte[]
+            {
+                0,    // 30°C: 0%
+                0,    // 40°C: 0%
+                51,   // 50°C: 20%
+                64,   // 55°C: 25%
+                89,   // 60°C: 35%
+                140,  // 70°C: 55%
+                166,  // 75°C: 65%
+                191,  // 80°C: 75%
+                217,  // 85°C: 85%
+                255   // 95°C: 100%
+            };
+
+            // Validate all fan speeds before writing
+            for (int i = 0; i < cpuFanSpeeds.Length; i++)
+            {
+                if (!ValidateFanSpeed(cpuFanSpeeds[i], $"CPU fan curve point {i}"))
+                    return false;
+                if (!ValidateFanSpeed(gpuFanSpeeds[i], $"GPU fan curve point {i}"))
+                    return false;
+            }
+
+            // Write temperature points (shared by both fans)
+            for (int i = 0; i < tempPoints.Length; i++)
+            {
+                await WriteRegisterAsync((byte)(0xC0 + i), tempPoints[i]);
+            }
+
+            // Write CPU fan curve
+            for (int i = 0; i < cpuFanSpeeds.Length; i++)
+            {
+                await WriteRegisterAsync((byte)(Gen9Registers["FAN_CURVE_CPU"] + i), cpuFanSpeeds[i]);
+            }
+
+            // Write GPU fan curve
+            for (int i = 0; i < gpuFanSpeeds.Length; i++)
+            {
+                await WriteRegisterAsync((byte)(Gen9Registers["FAN_CURVE_GPU"] + i), gpuFanSpeeds[i]);
             }
 
             // Enable zero RPM mode below 50°C for silent operation
-            await WriteRegisterAsync(Gen9Registers["ZERO_RPM_ENABLE"], 0x01);
+            await SetZeroRPMEnabledAsync(true, 50);
 
-            // Set fan acceleration for faster response
-            await WriteRegisterAsync(Gen9Registers["FAN_ACCELERATION"], 0x03);
+            // Set fan acceleration for balanced response (1.2 second ramp)
+            await SetFanAccelerationAsync(12);
+
+            // Set moderate hysteresis to prevent oscillation (5°C)
+            await SetFanHysteresisAsync(5);
 
             if (Log.Instance.IsTraceEnabled)
-                Log.Instance.Trace($"Fan curve optimization applied successfully");
+                Log.Instance.Trace($"Fan curve optimization applied successfully - 10-point curves for CPU and GPU");
 
             return true;
         }
@@ -168,6 +282,192 @@ public class Gen9ECController : IDisposable
                 Log.Instance.Trace($"Failed to apply fan curve fix", ex);
             return false;
         }
+    }
+
+    /// <summary>
+    /// Set fan hysteresis to prevent rapid oscillation around threshold temperatures
+    /// Hysteresis creates a temperature "dead zone" where fan speed won't change
+    /// Example: With 5°C hysteresis, fan won't increase speed until temp rises 5°C above threshold
+    /// </summary>
+    /// <param name="hysteresisDegC">Temperature hysteresis in degrees Celsius (1-15°C recommended)</param>
+    public async Task SetFanHysteresisAsync(byte hysteresisDegC)
+    {
+        var value = (byte)Math.Clamp((int)hysteresisDegC, 1, 15);
+
+        // FAN_HYSTERESIS register at 0xB6
+        // Value represents temperature delta before fan speed changes
+        // Higher value = more stable operation but slower thermal response
+        // Lower value = faster response but more fan speed oscillation
+        // Recommended: 3-5°C for Balanced, 2°C for Max Performance, 8°C for Quiet
+        await WriteRegisterAsync(Gen9Registers["FAN_HYSTERESIS"], value).ConfigureAwait(false);
+
+        if (Log.Instance.IsTraceEnabled)
+            Log.Instance.Trace($"Fan hysteresis set to {value}°C (prevents oscillation around thresholds)");
+    }
+
+    /// <summary>
+    /// Set fan acceleration/deceleration rate for acoustic smoothness
+    /// Controls how quickly fans ramp up or down when temperature changes
+    /// Prevents jarring sudden speed changes that are acoustically annoying
+    /// </summary>
+    /// <param name="rampRate">Ramp rate: 0 = instant, 10 = 1 second, 20 = 2 seconds, up to 50 = 5 seconds</param>
+    public async Task SetFanAccelerationAsync(byte rampRate)
+    {
+        var value = (byte)Math.Clamp((int)rampRate, 0, 50);
+
+        // FAN_ACCELERATION register at 0xB7
+        // Value in units of 100ms (10 = 1 second)
+        // Controls gradual fan speed transitions
+        // Higher value = smoother (quieter) transitions but slower response
+        // Lower value = faster response but more audible ramps
+        // Recommended: 5 for Max Performance, 10-15 for Balanced, 30 for Quiet
+        await WriteRegisterAsync(Gen9Registers["FAN_ACCELERATION"], value).ConfigureAwait(false);
+
+        if (Log.Instance.IsTraceEnabled)
+            Log.Instance.Trace($"Fan acceleration rate set to {value} ({value * 0.1:F1}s ramp time)");
+    }
+
+    /// <summary>
+    /// Enable or disable Zero RPM mode (fans completely off at low temperatures)
+    /// Significantly reduces noise during idle/light workloads
+    /// Gen 9 vapor chamber system can handle brief periods of zero airflow below 50-55°C
+    /// </summary>
+    /// <param name="enabled">Enable or disable zero RPM mode</param>
+    /// <param name="thresholdTemp">Temperature threshold to start fans (typically 45-55°C)</param>
+    public async Task SetZeroRPMEnabledAsync(bool enabled, byte thresholdTemp = 50)
+    {
+        var tempValue = (byte)Math.Clamp((int)thresholdTemp, 40, 60);
+
+        // ZERO_RPM_ENABLE register at 0xB8
+        await WriteRegisterAsync(Gen9Registers["ZERO_RPM_ENABLE"], (byte)(enabled ? 1 : 0)).ConfigureAwait(false);
+
+        // Set temperature threshold for fan start
+        // This register (0xB9) sets the temperature at which fans begin spinning from zero
+        // Conservative: 45-50°C, Balanced: 50-52°C, Aggressive silent: 52-55°C
+        await WriteRegisterAsync(0xB9, tempValue).ConfigureAwait(false);
+
+        if (Log.Instance.IsTraceEnabled)
+            Log.Instance.Trace($"Zero RPM mode: {(enabled ? "ENABLED" : "DISABLED")}, start threshold: {tempValue}°C");
+    }
+
+    /// <summary>
+    /// Apply balanced fan behavior settings (default for most users)
+    /// Moderate hysteresis, smooth acceleration, zero RPM at idle
+    /// </summary>
+    public async Task ApplyBalancedFanBehaviorAsync()
+    {
+        await SetFanHysteresisAsync(5);      // 5°C hysteresis - balanced stability
+        await SetFanAccelerationAsync(12);   // 1.2s ramp - smooth transitions
+        await SetZeroRPMEnabledAsync(true, 50); // Zero RPM below 50°C
+
+        if (Log.Instance.IsTraceEnabled)
+            Log.Instance.Trace($"Applied balanced fan behavior settings");
+    }
+
+    /// <summary>
+    /// Set vapor chamber cooling mode
+    /// Gen 9 vapor chamber system has multiple modes for different thermal/power scenarios
+    /// </summary>
+    /// <param name="mode">Vapor chamber operating mode</param>
+    public async Task SetVaporChamberModeAsync(VaporChamberMode mode)
+    {
+        var value = (byte)mode;
+
+        // VAPOR_CHAMBER_MODE register at 0xD3
+        // 0x00 = Standard (default)
+        // 0x01 = Eco (battery saver)
+        // 0x02 = Enhanced (gaming/performance)
+        // 0x03 = Maximum (extreme cooling for sustained high power)
+        await WriteRegisterAsync(Gen9Registers["VAPOR_CHAMBER_MODE"], value).ConfigureAwait(false);
+
+        if (Log.Instance.IsTraceEnabled)
+            Log.Instance.Trace($"Vapor chamber mode set to {mode} (0x{value:X2})");
+    }
+
+    /// <summary>
+    /// Optimize vapor chamber mode based on workload type
+    /// Automatically selects best vapor chamber configuration for current scenario
+    /// </summary>
+    /// <param name="workload">Current workload type</param>
+    /// <param name="onBattery">True if system is on battery power</param>
+    public async Task OptimizeVaporChamberForWorkloadAsync(WorkloadType workload, bool onBattery = false)
+    {
+        VaporChamberMode mode;
+
+        // Battery mode always uses Eco
+        if (onBattery)
+        {
+            mode = VaporChamberMode.Eco;
+        }
+        else
+        {
+            // Select mode based on workload intensity
+            mode = workload switch
+            {
+                WorkloadType.Gaming => VaporChamberMode.Enhanced,
+                WorkloadType.HeavyProductivity => VaporChamberMode.Enhanced,
+                WorkloadType.AIWorkload => VaporChamberMode.Maximum,
+                WorkloadType.ContentCreation => VaporChamberMode.Maximum,
+                WorkloadType.LightProductivity => VaporChamberMode.Standard,
+                WorkloadType.Idle => VaporChamberMode.Standard,
+                _ => VaporChamberMode.Standard
+            };
+        }
+
+        await SetVaporChamberModeAsync(mode).ConfigureAwait(false);
+
+        if (Log.Instance.IsTraceEnabled)
+            Log.Instance.Trace($"Vapor chamber optimized for {workload} workload: {mode} mode");
+    }
+
+    /// <summary>
+    /// Apply aggressive vapor chamber + thermal settings for extreme performance
+    /// Use for short-duration high-power workloads (rendering, benchmarking)
+    /// </summary>
+    public async Task ApplyMaximumCoolingModeAsync()
+    {
+        if (Log.Instance.IsTraceEnabled)
+            Log.Instance.Trace($"Applying maximum cooling configuration...");
+
+        // Maximum vapor chamber circulation
+        await SetVaporChamberModeAsync(VaporChamberMode.Maximum).ConfigureAwait(false);
+
+        // Aggressive thermal limits
+        await WriteRegisterAsync(Gen9Registers["CPU_TJMAX"], 0x6A).ConfigureAwait(false);  // 106°C
+        await WriteRegisterAsync(Gen9Registers["THERMAL_THROTTLE_OFFSET"], 0x08).ConfigureAwait(false);  // 8°C offset
+        await WriteRegisterAsync(Gen9Registers["THERMAL_VELOCITY"], 0x0F).ConfigureAwait(false);  // Max boost
+
+        // Fast fan response (minimal hysteresis, quick acceleration)
+        await SetFanHysteresisAsync(2).ConfigureAwait(false);  // 2°C - very responsive
+        await SetFanAccelerationAsync(5).ConfigureAwait(false);  // 0.5s ramp - fast response
+
+        if (Log.Instance.IsTraceEnabled)
+            Log.Instance.Trace($"Maximum cooling mode applied");
+    }
+
+    /// <summary>
+    /// Apply eco vapor chamber + thermal settings for battery life
+    /// Reduces vapor chamber power consumption and fan activity
+    /// </summary>
+    public async Task ApplyEcoCoolingModeAsync()
+    {
+        if (Log.Instance.IsTraceEnabled)
+            Log.Instance.Trace($"Applying eco cooling configuration...");
+
+        // Eco vapor chamber mode
+        await SetVaporChamberModeAsync(VaporChamberMode.Eco).ConfigureAwait(false);
+
+        // Conservative thermal limits
+        await WriteRegisterAsync(Gen9Registers["CPU_TJMAX"], 0x64).ConfigureAwait(false);  // 100°C
+        await WriteRegisterAsync(Gen9Registers["THERMAL_THROTTLE_OFFSET"], 0x03).ConfigureAwait(false);  // 3°C offset
+
+        // Extended zero RPM and slow fan response
+        await SetFanHysteresisAsync(10).ConfigureAwait(false);  // 10°C - very stable
+        await SetFanAccelerationAsync(40).ConfigureAwait(false);  // 4s ramp - very smooth
+        await SetZeroRPMEnabledAsync(true, 55).ConfigureAwait(false);  // Zero RPM up to 55°C
+
+        if (Log.Instance.IsTraceEnabled)
+            Log.Instance.Trace($"Eco cooling mode applied");
     }
 
     /// <summary>
@@ -263,6 +563,9 @@ public class Gen9ECController : IDisposable
     /// </summary>
     public async Task<Gen9SensorData> ReadSensorDataAsync()
     {
+        var fan1Raw = await ReadRegisterAsync(Gen9Registers["FAN1_SPEED"]);
+        var fan2Raw = await ReadRegisterAsync(Gen9Registers["FAN2_SPEED"]);
+
         return new Gen9SensorData
         {
             CpuPackageTemp = await ReadRegisterAsync(Gen9Registers["CPU_PACKAGE_TEMP"]),
@@ -273,8 +576,10 @@ public class Gen9ECController : IDisposable
             SsdTemp = await ReadRegisterAsync(Gen9Registers["PCIE5_SSD_TEMP"]),
             RamTemp = await ReadRegisterAsync(Gen9Registers["RAM_TEMP"]),
             BatteryTemp = await ReadRegisterAsync(Gen9Registers["BATTERY_TEMP"]),
-            Fan1Speed = await ReadRegisterAsync(Gen9Registers["FAN1_SPEED"]) * 100, // Convert to RPM
-            Fan2Speed = await ReadRegisterAsync(Gen9Registers["FAN2_SPEED"]) * 100,
+            Fan1Speed = fan1Raw,             // Keep raw 0-255 value
+            Fan2Speed = fan2Raw,             // Keep raw 0-255 value
+            Fan1SpeedRPM = FanSpeedToRPM(fan1Raw),  // Convert to RPM
+            Fan2SpeedRPM = FanSpeedToRPM(fan2Raw),  // Convert to RPM
             Timestamp = DateTime.UtcNow
         };
     }
@@ -347,7 +652,7 @@ public class Gen9ECController : IDisposable
     /// <summary>
     /// Thread-safe EC register write with retry logic
     /// </summary>
-    private async Task WriteRegisterAsync(byte register, byte value)
+    public async Task WriteRegisterAsync(byte register, byte value)
     {
         await Task.Run(() =>
         {
@@ -454,7 +759,14 @@ public struct Gen9SensorData
     public byte SsdTemp { get; set; }
     public byte RamTemp { get; set; }
     public byte BatteryTemp { get; set; }
-    public int Fan1Speed { get; set; }
-    public int Fan2Speed { get; set; }
+    public byte Fan1Speed { get; set; }        // Raw EC value 0-255
+    public byte Fan2Speed { get; set; }        // Raw EC value 0-255
+    public int Fan1SpeedRPM { get; set; }      // Calculated RPM
+    public int Fan2SpeedRPM { get; set; }      // Calculated RPM
     public DateTime Timestamp { get; set; }
+
+    public override string ToString()
+    {
+        return $"Temps: CPU={CpuPackageTemp}°C GPU={GpuTemp}°C VRM={VrmTemp}°C | Fans: CPU={Fan1SpeedRPM}RPM ({Fan1Speed}/255) GPU={Fan2SpeedRPM}RPM ({Fan2Speed}/255)";
+    }
 }

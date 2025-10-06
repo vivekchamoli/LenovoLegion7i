@@ -128,12 +128,15 @@ public abstract class AbstractComboBoxFeatureCardControl<T> : AbstractRefreshing
             if (!comboBox.TryGetSelectedItem(out T selectedState))
                 return;
 
-            var currentState = await feature.GetStateAsync();
+            // PERFORMANCE FIX: Move expensive EC/WMI operations off UI thread to prevent dashboard click sluggishness
+            T currentState = default;
+            await Task.Run(async () => currentState = await feature.GetStateAsync());
 
             if (selectedState.Equals(currentState))
                 return;
 
-            await feature.SetStateAsync(selectedState);
+            // PERFORMANCE FIX: Move expensive state change operations off UI thread
+            await Task.Run(async () => await feature.SetStateAsync(selectedState));
         }
         catch (Exception ex)
         {

@@ -30,13 +30,17 @@ public partial class DashboardPage
 
     private async Task RefreshAsync()
     {
-        _loader.IsLoading = true;
+        // PERFORMANCE FIX: Don't block page load - show dashboard immediately and let controls refresh themselves
+        // Controls will refresh when they become visible via their IsVisibleChanged event
 
-        var initializedTasks = new List<Task> { Task.Delay(TimeSpan.FromSeconds(1)) };
+        _loader.IsLoading = false;  // Show content immediately, don't wait for control initialization
 
         ScrollHost?.ScrollToTop();
 
         _sensors.Visibility = _dashboardSettings.Store.ShowSensors ? Visibility.Visible : Visibility.Collapsed;
+        _aiFanControl.Visibility = FeatureFlags.UseAdaptiveFanCurves || FeatureFlags.UseResourceOrchestrator
+            ? Visibility.Visible
+            : Visibility.Collapsed;
 
         _dashboardGroupControls.Clear();
         _content.ColumnDefinitions.Clear();
@@ -62,7 +66,7 @@ public partial class DashboardPage
             var control = new DashboardGroupControl(group);
             _content.Children.Add(control);
             _dashboardGroupControls.Add(control);
-            initializedTasks.Add(control.InitializedTask);
+            // Don't wait for initialization - let controls load asynchronously
         }
 
         _content.RowDefinitions.Add(new RowDefinition { Height = new(1, GridUnitType.Auto) });
@@ -89,9 +93,8 @@ public partial class DashboardPage
 
         LayoutGroups(ActualWidth);
 
-        await Task.WhenAll(initializedTasks);
-
-        _loader.IsLoading = false;
+        // Page is now visible - controls will refresh themselves when they become visible
+        await Task.CompletedTask;
     }
 
     private void DashboardPage_SizeChanged(object sender, SizeChangedEventArgs e)

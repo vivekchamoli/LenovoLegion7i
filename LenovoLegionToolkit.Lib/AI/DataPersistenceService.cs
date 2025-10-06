@@ -22,6 +22,7 @@ public class DataPersistenceService
     private string UserPreferencesPath => Path.Combine(_dataDirectory, "user_preferences.json");
     private string StatisticsPath => Path.Combine(_dataDirectory, "orchestrator_stats.json");
     private string BatteryHistoryPath => Path.Combine(_dataDirectory, "battery_history.json");
+    private string ThermalTrainingPath => Path.Combine(_dataDirectory, "thermal_training.json");
 
     public DataPersistenceService(string? customDataDirectory = null)
     {
@@ -356,6 +357,9 @@ public class DataPersistenceService
 
             if (File.Exists(BatteryHistoryPath))
                 totalSize += new FileInfo(BatteryHistoryPath).Length;
+
+            if (File.Exists(ThermalTrainingPath))
+                totalSize += new FileInfo(ThermalTrainingPath).Length;
         }
         catch
         {
@@ -363,6 +367,94 @@ public class DataPersistenceService
         }
 
         return totalSize;
+    }
+
+    #endregion
+
+    #region Thermal Training Data
+
+    /// <summary>
+    /// Save thermal training data for ML model improvement
+    /// Stores fan speed effectiveness at different temperatures and workloads
+    /// </summary>
+    public async Task StoreThermalTrainingDataAsync(ThermalTrainingDataPoint dataPoint)
+    {
+        try
+        {
+            var existingData = await LoadThermalTrainingDataAsync().ConfigureAwait(false);
+
+            // Add new data point
+            existingData.Add(dataPoint);
+
+            // Keep only most recent 10,000 data points to prevent file bloat
+            const int MAX_TRAINING_POINTS = 10000;
+            if (existingData.Count > MAX_TRAINING_POINTS)
+            {
+                existingData.RemoveRange(0, existingData.Count - MAX_TRAINING_POINTS);
+            }
+
+            var json = JsonSerializer.Serialize(existingData, _jsonOptions);
+            await File.WriteAllTextAsync(ThermalTrainingPath, json).ConfigureAwait(false);
+
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Stored thermal training data point (total: {existingData.Count})");
+        }
+        catch (Exception ex)
+        {
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Failed to store thermal training data", ex);
+        }
+    }
+
+    /// <summary>
+    /// Load thermal training data from disk
+    /// </summary>
+    public async Task<List<ThermalTrainingDataPoint>> LoadThermalTrainingDataAsync()
+    {
+        try
+        {
+            if (!File.Exists(ThermalTrainingPath))
+                return new List<ThermalTrainingDataPoint>();
+
+            var json = await File.ReadAllTextAsync(ThermalTrainingPath).ConfigureAwait(false);
+            var data = JsonSerializer.Deserialize<List<ThermalTrainingDataPoint>>(json, _jsonOptions);
+
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Loaded {data?.Count ?? 0} thermal training data points");
+
+            return data ?? new List<ThermalTrainingDataPoint>();
+        }
+        catch (Exception ex)
+        {
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Failed to load thermal training data", ex);
+
+            return new List<ThermalTrainingDataPoint>();
+        }
+    }
+
+    /// <summary>
+    /// Clear all thermal training data (for reset/testing)
+    /// </summary>
+    public async Task ClearThermalTrainingDataAsync()
+    {
+        try
+        {
+            if (File.Exists(ThermalTrainingPath))
+            {
+                File.Delete(ThermalTrainingPath);
+
+                if (Log.Instance.IsTraceEnabled)
+                    Log.Instance.Trace($"Cleared thermal training data");
+            }
+        }
+        catch (Exception ex)
+        {
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Failed to clear thermal training data", ex);
+        }
+
+        await Task.CompletedTask;
     }
 
     #endregion
@@ -388,4 +480,67 @@ public class PersistentStatistics
     public DateTime FirstStart { get; set; }
     public DateTime LastUpdate { get; set; }
     public TimeSpan TotalUptime { get; set; }
+}
+
+/// <summary>
+/// Thermal training data point for ML model improvement
+/// Captures temperature, fan speed, and effectiveness for pattern learning
+/// </summary>
+public class ThermalTrainingDataPoint
+{
+    /// <summary>
+    /// Timestamp when data was collected
+    /// </summary>
+    public DateTime Timestamp { get; set; }
+
+    /// <summary>
+    /// CPU temperature before cooling action (°C)
+    /// </summary>
+    public byte TempBefore { get; set; }
+
+    /// <summary>
+    /// CPU temperature after cooling action (°C)
+    /// </summary>
+    public byte TempAfter { get; set; }
+
+    /// <summary>
+    /// Fan speed during measurement (0-255 scale)
+    /// </summary>
+    public byte FanSpeedBefore { get; set; }
+
+    /// <summary>
+    /// Fan speed after action (0-255 scale)
+    /// </summary>
+    public byte FanSpeedAfter { get; set; }
+
+    /// <summary>
+    /// Workload type during measurement
+    /// </summary>
+    public WorkloadType Workload { get; set; }
+
+    /// <summary>
+    /// CPU power limit during measurement (watts)
+    /// </summary>
+    public int PowerLevel { get; set; }
+
+    /// <summary>
+    /// Calculated cooling effectiveness (0-100%)
+    /// Higher = more effective cooling
+    /// </summary>
+    public int CoolingEffectiveness { get; set; }
+
+    /// <summary>
+    /// Duration of measurement (seconds)
+    /// </summary>
+    public double DurationSeconds { get; set; }
+
+    /// <summary>
+    /// Temperature delta (negative = cooling, positive = heating)
+    /// </summary>
+    public int TempDelta => TempAfter - TempBefore;
+
+    public override string ToString()
+    {
+        return $"Thermal: {TempBefore}°C → {TempAfter}°C, Fan: {FanSpeedBefore}→{FanSpeedAfter}, Effectiveness: {CoolingEffectiveness}%, Workload: {Workload}";
+    }
 }

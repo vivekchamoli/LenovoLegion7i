@@ -101,10 +101,48 @@ public class KeyboardLightAgent : IOptimizationAgent
 
     /// <summary>
     /// Determine optimal keyboard backlight state and brightness
+    /// Enhanced with media playback detection for automatic keyboard-off
+    /// Work Mode: RGB disabled on battery, 10% on AC for power savings
     /// </summary>
     private (bool enabled, int brightness) DetermineOptimalKeyboardState(SystemContext context)
     {
-        // On AC power: Always on with full brightness
+        // PRIORITY 0: WORK MODE (PRODUCTIVITY) - Optimize RGB for battery life
+        // On battery: RGB OFF (2-5W savings), On AC: 10% minimal brightness
+        if (FeatureFlags.UseProductivityMode)
+        {
+            if (context.BatteryState.IsOnBattery)
+            {
+                if (Log.Instance.IsTraceEnabled)
+                    Log.Instance.Trace($"Work Mode: Disabling RGB on battery (2-5W savings)");
+
+                return (false, 0); // OFF on battery for maximum power savings
+            }
+            else
+            {
+                if (Log.Instance.IsTraceEnabled)
+                    Log.Instance.Trace($"Work Mode: Minimal RGB on AC (10% brightness)");
+
+                return (true, 10); // 10% on AC for minimal visibility
+            }
+        }
+
+        // PRIORITY 1: Media Playback - Turn OFF keyboard (movie watching in dark room)
+        // Savings: 2-5W (RGB LEDs consume significant power)
+        if (context.CurrentWorkload.Type == WorkloadType.MediaPlayback)
+        {
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Media playback detected - disabling keyboard backlight (2-5W savings)");
+
+            return (false, 0); // OFF for movies
+        }
+
+        // PRIORITY 2: Video Conferencing - Keep minimal light (user may need to type)
+        if (context.CurrentWorkload.Type == WorkloadType.VideoConferencing)
+        {
+            return (true, 20); // Minimal brightness for typing if needed
+        }
+
+        // On AC power: Always on with full brightness (unless media playback)
         if (!context.BatteryState.IsOnBattery)
         {
             return (true, AC_BRIGHTNESS);

@@ -358,11 +358,12 @@ public readonly struct GodModePreset
         $" {nameof(MaxValueOffset)}: {MaxValueOffset}";
 }
 
-public readonly struct GPUStatus(GPUState state, string? performanceState, List<Process> processes)
+public readonly struct GPUStatus(GPUState state, string? performanceState, List<Process> processes, string? deviceName = null)
 {
     public GPUState State { get; } = state;
     public string? PerformanceState { get; } = performanceState;
     public List<Process> Processes { get; } = processes;
+    public string? DeviceName { get; } = deviceName;
     public int ProcessCount => Processes.Count;
 }
 

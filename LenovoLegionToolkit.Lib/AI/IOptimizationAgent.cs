@@ -76,6 +76,12 @@ public class ResourceAction
     public string Reason { get; set; } = string.Empty;
     public List<int>? AffectedProcesses { get; set; }
     public Dictionary<string, object> Parameters { get; set; } = new();
+
+    /// <summary>
+    /// System context at the time of action creation
+    /// Used by handlers for context-aware execution (e.g., acoustic optimization)
+    /// </summary>
+    public SystemContext? Context { get; set; }
 }
 
 /// <summary>

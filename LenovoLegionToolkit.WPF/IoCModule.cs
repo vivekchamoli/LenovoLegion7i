@@ -23,6 +23,7 @@ public class IoCModule : Module
         builder.Register<IpcServer>();
 
         // Multi-Agent System - v6.2.0
-        OrchestratorIntegration.RegisterServices(builder);
+        // REMOVED: Duplicate registration - already registered in LenovoLegionToolkit.Lib\IoCModule.cs:176
+        // OrchestratorIntegration.RegisterServices(builder);
     }
 }

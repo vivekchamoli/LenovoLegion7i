@@ -1,0 +1,7 @@
+{
+  "LenovoLegionToolkit.Lib/IoCModule.cs": "6699278dd56473031cc1d9ad19d434b4eb755cda58e6c47143b24c0226198532",
+  "LenovoLegionToolkit.Lib/Controllers/Gen9ECController.cs": "ca2c90a1e5f328674a412034ae5bcc493f956e46e8517da4c0a9b518472cab9a",
+  "LenovoLegionToolkit.Lib/Services/SafeGPUPStateManager.cs": "9284cd9524a0f6c1d92637d1831dc04cdd7c27e2785a30724df53a72e7034874",
+  "LenovoLegionToolkit.Lib/AI/ActionHandlers.cs": "e819d9892ad5ba7e6e4942e86fb4bdf61cdd8e4919e3aeae32e181ad9d0906c0",
+  "LenovoLegionToolkit.Lib/AI/PowerAgent.cs": "3745898a25d9ecb46eae4bdf68731d0870133f78b08bf836e2bafdb01dab1c6c"
+}

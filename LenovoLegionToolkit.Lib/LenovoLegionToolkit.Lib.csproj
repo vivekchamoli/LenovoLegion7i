@@ -44,4 +44,19 @@
 	    <LastGenOutput>Resource.Designer.cs</LastGenOutput>
 	  </EmbeddedResource>
 	</ItemGroup>
+	<ItemGroup>
+	  <!-- Native dependencies for direct hardware control -->
+	  <Content Include="Native\inpoutx64.dll">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	    <Link>inpoutx64.dll</Link>
+	  </Content>
+	  <Content Include="Native\WinRing0x64.dll">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	    <Link>WinRing0x64.dll</Link>
+	  </Content>
+	  <Content Include="Native\WinRing0x64.sys">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	    <Link>WinRing0x64.sys</Link>
+	  </Content>
+	</ItemGroup>
 </Project>

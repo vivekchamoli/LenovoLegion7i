@@ -1,0 +1,40 @@
+{
+  "isValid": false,
+  "checks": [
+    {
+      "ruleId": "RULE-001",
+      "name": "EC Register Integrity",
+      "filePath": "LenovoLegionToolkit.Lib/Controllers/Gen9ECController.cs",
+      "passed": false,
+      "message": "\u274C EC register integrity violated: 42/40 registers, 60/58 safety ranges, 25 collisions (Duplicate addresses: B6, B7, C0, C8, D3, E0, E9, 5A, 69, 64, 00, 0F, FF, 01, 32, 3C, 37, 8C, AF, 14, 03, 02, 80, FD, 81)"
+    },
+    {
+      "ruleId": "RULE-002",
+      "name": "IoC Service Registration",
+      "filePath": "LenovoLegionToolkit.Lib/IoCModule.cs",
+      "passed": true,
+      "message": "\u2705 IoC registration valid (10 services, orchestrator wired)"
+    },
+    {
+      "ruleId": "RULE-003",
+      "name": "P-State Integration Points",
+      "filePath": "LenovoLegionToolkit.Lib/AI/PowerAgent.cs",
+      "passed": true,
+      "message": "\u2705 P-state integration valid (4 integration points)"
+    },
+    {
+      "ruleId": "RULE-005",
+      "name": "Action Handler Registry",
+      "filePath": "LenovoLegionToolkit.Lib/AI/ActionHandlers.cs",
+      "passed": false,
+      "message": "\u274C Action handler registry incomplete: 11/7 handlers (Missing: ThermalActionHandler, GPUActionHandler, BatteryActionHandler, HybridModeActionHandler, DisplayActionHandler, KeyboardLightActionHandler)"
+    }
+  ],
+  "timestamp": "2025-10-11T00:38:41",
+  "validatedFiles": [
+    "LenovoLegionToolkit.Lib/Controllers/Gen9ECController.cs",
+    "LenovoLegionToolkit.Lib/IoCModule.cs",
+    "LenovoLegionToolkit.Lib/AI/PowerAgent.cs",
+    "LenovoLegionToolkit.Lib/AI/ActionHandlers.cs"
+  ]
+}

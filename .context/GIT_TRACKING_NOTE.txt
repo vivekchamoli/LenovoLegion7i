@@ -1,0 +1,49 @@
+IMPORTANT: Git Tracking for Context Files
+
+The .gitignore currently ignores *.md files (line 635), which means the context
+system documentation files (.context/*.md) will NOT be tracked by git.
+
+RECOMMENDATION:
+
+Option 1: Track context files (RECOMMENDED for team collaboration)
+-----------------------------------------------------------------
+Add to .gitignore BEFORE the "*.md" line:
+
+# Context management system (track for team collaboration)
+!.context/**/*.md
+!.context/**/*.json
+
+This will:
+✅ Track all context documentation for team awareness
+✅ Track session history for audit trail
+✅ Track agent registry for multi-user consistency
+✅ Track checkpoints for rollback capability
+
+Option 2: Keep context local (RECOMMENDED for solo development)
+---------------------------------------------------------------
+Leave .gitignore as-is. Context files remain local only.
+
+This will:
+✅ Keep session history private
+✅ Reduce git repo size
+⚠️ Context lost if repo cloned on new machine
+⚠️ No team collaboration on context
+
+CURRENT STATUS: Option 2 (local only)
+
+FILES AFFECTED:
+- .context/INDEX.md (system index)
+- .context/CONTEXT_SYSTEM_README.md (architecture)
+- .context/SESSION_START_CHECKLIST.md (quick reference)
+- .context/AUTONOMOUS_VALIDATION_SCRIPT.md (validation procedure)
+- .context/sessions/*.json (session history)
+- .context/agents/*.json (agent registry)
+- .context/checkpoints/*.json (validation checkpoints)
+
+JSON FILES (.context/**/*.json) ARE CURRENTLY TRACKED by default
+(no *.json ignore rule in .gitignore)
+
+If you prefer to keep JSON files local-only, add to .gitignore:
+.context/sessions/*.json
+.context/agents/*.json
+.context/checkpoints/*.json

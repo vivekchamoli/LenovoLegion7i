@@ -19,6 +19,7 @@ public class HybridModeAgent : IOptimizationAgent
     private readonly DisplayTopologyService _displayTopologyService;
     private readonly ProcessLaunchMonitor? _processLaunchMonitor;
     private readonly BatteryStateService? _batteryStateService;
+    private readonly CoolingPeriodManager _coolingPeriodManager;
     private HybridModeState? _previousMode;
     private ProcessLaunchPrediction? _pendingPrediction;
 
@@ -29,12 +30,14 @@ public class HybridModeAgent : IOptimizationAgent
         HybridModeFeature hybridModeFeature,
         GPUTransitionManager transitionManager,
         DisplayTopologyService displayTopologyService,
+        CoolingPeriodManager coolingPeriodManager,
         ProcessLaunchMonitor? processLaunchMonitor = null,
         BatteryStateService? batteryStateService = null)
     {
         _hybridModeFeature = hybridModeFeature ?? throw new ArgumentNullException(nameof(hybridModeFeature));
         _transitionManager = transitionManager ?? throw new ArgumentNullException(nameof(transitionManager));
         _displayTopologyService = displayTopologyService ?? throw new ArgumentNullException(nameof(displayTopologyService));
+        _coolingPeriodManager = coolingPeriodManager ?? throw new ArgumentNullException(nameof(coolingPeriodManager));
         _processLaunchMonitor = processLaunchMonitor;
         _batteryStateService = batteryStateService;
 
@@ -71,6 +74,14 @@ public class HybridModeAgent : IOptimizationAgent
         // Skip if hybrid mode not supported
         if (!await _hybridModeFeature.IsSupportedAsync().ConfigureAwait(false))
             return proposal;
+
+        // Check cooling period - respect user manual GPU mode overrides
+        if (_coolingPeriodManager.IsInCoolingPeriod("GPU_HYBRID_MODE", out var remaining))
+        {
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"[HybridModeAgent] GPU mode proposal skipped - cooling period active ({remaining.TotalMinutes:F1}min remaining)");
+            return proposal;
+        }
 
         // PHASE 1 FIX: Thread-safe state retrieval with no race condition
         var currentMode = await _transitionManager.GetCurrentStateAsync().ConfigureAwait(false);

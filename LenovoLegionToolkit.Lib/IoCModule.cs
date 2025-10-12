@@ -150,6 +150,7 @@ public class IoCModule : Module
         builder.RegisterType<AI.ThermalOptimizer>().SingleInstance();
         builder.RegisterType<AI.AcousticOptimizer>().SingleInstance();
         builder.RegisterType<AI.UserOverrideManager>().SingleInstance();
+        builder.RegisterType<AI.CoolingPeriodManager>().SingleInstance();
         builder.RegisterType<AI.DecisionArbitrationEngine>().SingleInstance();
 
         // Multi-agent system (register with interface for array injection)

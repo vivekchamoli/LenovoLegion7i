@@ -22,6 +22,7 @@ public class PowerAgent : IOptimizationAgent
     private readonly PowerUsagePredictor _powerPredictor;
     private readonly BatteryLifeEstimator _batteryEstimator;
     private readonly PowerModeFeature _powerModeFeature;
+    private readonly CoolingPeriodManager _coolingPeriodManager;
     private readonly EliteFeaturesManager? _eliteFeaturesManager;
     private readonly CPUCoreManager? _cpuCoreManager;
     private readonly MemoryPowerManager? _memoryPowerManager;
@@ -34,6 +35,7 @@ public class PowerAgent : IOptimizationAgent
         PowerUsagePredictor powerPredictor,
         BatteryLifeEstimator batteryEstimator,
         PowerModeFeature powerModeFeature,
+        CoolingPeriodManager coolingPeriodManager,
         EliteFeaturesManager? eliteFeaturesManager = null,
         CPUCoreManager? cpuCoreManager = null,
         MemoryPowerManager? memoryPowerManager = null,
@@ -42,6 +44,7 @@ public class PowerAgent : IOptimizationAgent
         _powerPredictor = powerPredictor ?? throw new ArgumentNullException(nameof(powerPredictor));
         _batteryEstimator = batteryEstimator ?? throw new ArgumentNullException(nameof(batteryEstimator));
         _powerModeFeature = powerModeFeature ?? throw new ArgumentNullException(nameof(powerModeFeature));
+        _coolingPeriodManager = coolingPeriodManager ?? throw new ArgumentNullException(nameof(coolingPeriodManager));
         _eliteFeaturesManager = eliteFeaturesManager; // Optional - graceful degradation
         _cpuCoreManager = cpuCoreManager; // Optional - Phase 4 elite feature
         _memoryPowerManager = memoryPowerManager; // Optional - Phase 4 elite feature
@@ -55,6 +58,14 @@ public class PowerAgent : IOptimizationAgent
             Agent = AgentName,
             Priority = Priority
         };
+
+        // Check cooling period - respect user manual overrides
+        if (_coolingPeriodManager.IsInCoolingPeriod("CPU_POWER_LIMIT", out var remaining))
+        {
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"[PowerAgent] CPU power proposal skipped - cooling period active ({remaining.TotalMinutes:F1}min remaining)");
+            return proposal;
+        }
 
         // Record data point for ML model
         RecordPowerDataPoint(context);

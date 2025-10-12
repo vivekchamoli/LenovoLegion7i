@@ -13,6 +13,7 @@ namespace LenovoLegionToolkit.Lib.AI;
 public class KeyboardLightAgent : IOptimizationAgent
 {
     private readonly RGBKeyboardBacklightController? _keyboardController;
+    private readonly CoolingPeriodManager _coolingPeriodManager;
     private bool? _previousState;
     private int? _previousBrightness;
 
@@ -24,9 +25,12 @@ public class KeyboardLightAgent : IOptimizationAgent
     public string AgentName => "KeyboardLightAgent";
     public AgentPriority Priority => AgentPriority.Medium;
 
-    public KeyboardLightAgent(RGBKeyboardBacklightController? keyboardController)
+    public KeyboardLightAgent(
+        RGBKeyboardBacklightController? keyboardController,
+        CoolingPeriodManager coolingPeriodManager)
     {
         _keyboardController = keyboardController;
+        _coolingPeriodManager = coolingPeriodManager ?? throw new ArgumentNullException(nameof(coolingPeriodManager));
     }
 
     public async Task<AgentProposal> ProposeActionsAsync(SystemContext context)
@@ -36,6 +40,14 @@ public class KeyboardLightAgent : IOptimizationAgent
             Agent = AgentName,
             Priority = Priority
         };
+
+        // Check cooling period - respect user manual overrides
+        if (_coolingPeriodManager.IsInCoolingPeriod("KEYBOARD_BACKLIGHT", out var remaining))
+        {
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"[KeyboardLightAgent] Backlight proposal skipped - cooling period active ({remaining.TotalMinutes:F1}min remaining)");
+            return proposal;
+        }
 
         // Skip if RGB keyboard not supported
         if (_keyboardController == null || !await _keyboardController.IsSupportedAsync().ConfigureAwait(false))

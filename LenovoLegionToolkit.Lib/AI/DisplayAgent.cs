@@ -21,6 +21,7 @@ public class DisplayAgent : IOptimizationAgent
     private readonly SystemContextStore _contextStore;
     private readonly UserOverrideManager _overrideManager;
     private readonly ContentFramerateDetector _framerateDetector;
+    private readonly CoolingPeriodManager _coolingPeriodManager;
 
     // Display optimization parameters
     private const int MIN_BRIGHTNESS = 15;  // Never go completely dark
@@ -43,12 +44,14 @@ public class DisplayAgent : IOptimizationAgent
         RefreshRateFeature refreshRateFeature,
         SystemContextStore contextStore,
         UserOverrideManager overrideManager,
+        CoolingPeriodManager coolingPeriodManager,
         ContentFramerateDetector? framerateDetector = null)
     {
         _brightnessController = brightnessController;
         _refreshRateFeature = refreshRateFeature ?? throw new ArgumentNullException(nameof(refreshRateFeature));
         _contextStore = contextStore ?? throw new ArgumentNullException(nameof(contextStore));
         _overrideManager = overrideManager ?? throw new ArgumentNullException(nameof(overrideManager));
+        _coolingPeriodManager = coolingPeriodManager ?? throw new ArgumentNullException(nameof(coolingPeriodManager));
         _framerateDetector = framerateDetector ?? new ContentFramerateDetector();
     }
 
@@ -94,6 +97,14 @@ public class DisplayAgent : IOptimizationAgent
     {
         if (_brightnessController == null)
             return Task.CompletedTask;
+
+        // Check cooling period - respect user manual overrides
+        if (_coolingPeriodManager.IsInCoolingPeriod("DISPLAY_BRIGHTNESS", out var remaining))
+        {
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"[DisplayAgent] Brightness proposal skipped - cooling period active ({remaining.TotalMinutes:F1}min remaining)");
+            return Task.CompletedTask;
+        }
 
         // Check for user override - respect manual brightness adjustments
         if (_overrideManager.IsOverrideActive("DISPLAY_BRIGHTNESS"))

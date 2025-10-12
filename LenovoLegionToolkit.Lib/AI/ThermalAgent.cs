@@ -18,6 +18,7 @@ public class ThermalAgent : IOptimizationAgent
 {
     private readonly ThermalOptimizer _thermalOptimizer;
     private readonly SystemContextStore _contextStore;
+    private readonly CoolingPeriodManager _coolingPeriodManager;
     private readonly AdaptiveFanCurveController? _adaptiveFanController;
     private readonly DataPersistenceService? _persistenceService;
 
@@ -42,11 +43,13 @@ public class ThermalAgent : IOptimizationAgent
     public ThermalAgent(
         ThermalOptimizer thermalOptimizer,
         SystemContextStore contextStore,
+        CoolingPeriodManager coolingPeriodManager,
         AdaptiveFanCurveController? adaptiveFanController = null,
         DataPersistenceService? persistenceService = null)
     {
         _thermalOptimizer = thermalOptimizer ?? throw new ArgumentNullException(nameof(thermalOptimizer));
         _contextStore = contextStore ?? throw new ArgumentNullException(nameof(contextStore));
+        _coolingPeriodManager = coolingPeriodManager ?? throw new ArgumentNullException(nameof(coolingPeriodManager));
         _adaptiveFanController = adaptiveFanController;
         _persistenceService = persistenceService;
     }
@@ -64,6 +67,18 @@ public class ThermalAgent : IOptimizationAgent
                 ["GpuTemp"] = context.ThermalState.GpuTemp
             }
         };
+
+        // Check cooling period - respect user manual fan speed/profile overrides
+        // Note: Emergency thermal actions (>90°C) bypass cooling period for safety
+        if (context.ThermalState.CpuTemp < 90 && context.ThermalState.GpuTemp < 85)
+        {
+            if (_coolingPeriodManager.IsInCoolingPeriod("FAN_CONTROL", out var remaining))
+            {
+                if (Log.Instance.IsTraceEnabled)
+                    Log.Instance.Trace($"[ThermalAgent] Fan control proposal skipped - cooling period active ({remaining.TotalMinutes:F1}min remaining)");
+                return proposal;
+            }
+        }
 
         // PRIORITY 0: WORK MODE (PRODUCTIVITY) - Silent Operation (<25dB target)
         // Office/professional workflows: Prioritize silence over aggressive cooling

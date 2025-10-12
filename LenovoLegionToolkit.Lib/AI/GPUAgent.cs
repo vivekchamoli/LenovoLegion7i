@@ -15,6 +15,7 @@ namespace LenovoLegionToolkit.Lib.AI;
 public class GPUAgent : IOptimizationAgent
 {
     private readonly GPUController _gpuController;
+    private readonly CoolingPeriodManager _coolingPeriodManager;
     private readonly GPUOverclockController? _overclockController;
 
     // Critical processes that should never be deprioritized
@@ -34,9 +35,13 @@ public class GPUAgent : IOptimizationAgent
     public string AgentName => "GPUAgent";
     public AgentPriority Priority => AgentPriority.Medium;
 
-    public GPUAgent(GPUController gpuController, GPUOverclockController? overclockController)
+    public GPUAgent(
+        GPUController gpuController,
+        CoolingPeriodManager coolingPeriodManager,
+        GPUOverclockController? overclockController = null)
     {
         _gpuController = gpuController ?? throw new ArgumentNullException(nameof(gpuController));
+        _coolingPeriodManager = coolingPeriodManager ?? throw new ArgumentNullException(nameof(coolingPeriodManager));
         _overclockController = overclockController;
     }
 
@@ -47,6 +52,14 @@ public class GPUAgent : IOptimizationAgent
             Agent = AgentName,
             Priority = Priority
         };
+
+        // Check cooling period - respect user manual GPU power/overclock overrides
+        if (_coolingPeriodManager.IsInCoolingPeriod("GPU_POWER_CONTROL", out var remaining))
+        {
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"[GPUAgent] GPU power/overclock proposal skipped - cooling period active ({remaining.TotalMinutes:F1}min remaining)");
+            return proposal;
+        }
 
         if (!_gpuController.IsSupported())
             return proposal;

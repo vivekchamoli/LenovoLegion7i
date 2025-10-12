@@ -16,6 +16,7 @@ public class BatteryAgent : IOptimizationAgent
 {
     private readonly BatteryFeature _batteryFeature;
     private readonly BatteryLifeEstimator _batteryEstimator;
+    private readonly CoolingPeriodManager _coolingPeriodManager;
 
     // Battery health optimization parameters
     private const int CRITICAL_BATTERY_PERCENT = 15;
@@ -27,10 +28,12 @@ public class BatteryAgent : IOptimizationAgent
 
     public BatteryAgent(
         BatteryFeature batteryFeature,
-        BatteryLifeEstimator batteryEstimator)
+        BatteryLifeEstimator batteryEstimator,
+        CoolingPeriodManager coolingPeriodManager)
     {
         _batteryFeature = batteryFeature ?? throw new ArgumentNullException(nameof(batteryFeature));
         _batteryEstimator = batteryEstimator ?? throw new ArgumentNullException(nameof(batteryEstimator));
+        _coolingPeriodManager = coolingPeriodManager ?? throw new ArgumentNullException(nameof(coolingPeriodManager));
     }
 
     public async Task<AgentProposal> ProposeActionsAsync(SystemContext context)
@@ -40,6 +43,18 @@ public class BatteryAgent : IOptimizationAgent
             Agent = AgentName,
             Priority = Priority
         };
+
+        // Check cooling period - respect user manual battery conservation settings
+        // Note: Critical battery (<15%) bypasses cooling period for safety
+        if (context.BatteryState.ChargePercent >= CRITICAL_BATTERY_PERCENT)
+        {
+            if (_coolingPeriodManager.IsInCoolingPeriod("BATTERY_CONSERVATION", out var remaining))
+            {
+                if (Log.Instance.IsTraceEnabled)
+                    Log.Instance.Trace($"[BatteryAgent] Battery conservation proposal skipped - cooling period active ({remaining.TotalMinutes:F1}min remaining)");
+                return proposal;
+            }
+        }
 
         // Skip if battery feature not available
         if (!await _batteryFeature.IsSupportedAsync().ConfigureAwait(false))

@@ -10,7 +10,7 @@ namespace LenovoLegionToolkit.Lib.System;
 /// Provides elite-level CPU power control through direct register access
 ///
 /// REQUIREMENTS:
-/// - Kernel driver (WinRing0, RyzenMaster driver, or custom driver)
+/// - Kernel driver (WinRing0 via HybridMSRDriver)
 /// - Administrator privileges
 /// - Intel CPU (for Intel-specific MSRs)
 ///
@@ -22,24 +22,7 @@ namespace LenovoLegionToolkit.Lib.System;
 /// </summary>
 public class MSRAccess
 {
-    // WinRing0 DLL imports (gracefully fails if driver not loaded)
-    [DllImport("WinRing0x64.dll", EntryPoint = "Rdmsr", SetLastError = true)]
-    private static extern bool WinRing0_Rdmsr(uint index, out uint eax, out uint edx);
-
-    [DllImport("WinRing0x64.dll", EntryPoint = "Wrmsr", SetLastError = true)]
-    private static extern bool WinRing0_Wrmsr(uint index, uint eax, uint edx);
-
-    [DllImport("WinRing0x64.dll", EntryPoint = "InitializeOls", SetLastError = true)]
-    private static extern bool WinRing0_InitializeOls();
-
-    [DllImport("WinRing0x64.dll", EntryPoint = "DeinitializeOls")]
-    private static extern void WinRing0_DeinitializeOls();
-
-    // Alternative: LibreHardwareMonitor approach (fallback)
-    // Can also use direct driver handle approach via CreateFile + DeviceIoControl
-
-    private static bool _winRing0Initialized = false;
-    private static bool _winRing0Available = false;
+    private readonly HybridMSRDriver _driver;
     // Intel MSR Addresses (Model-Specific Registers)
     public const uint MSR_PKG_POWER_LIMIT = 0x610;       // Package power limit (PL1/PL2/PL4)
     public const uint MSR_RAPL_POWER_UNIT = 0x606;       // RAPL power unit
@@ -55,45 +38,12 @@ public class MSRAccess
     public const uint MSR_PKG_POWER_SKU = 0x614;         // Package power SKU
     public const uint MSR_TEMPERATURE_TARGET = 0x1A2;    // Temperature target
 
-    private bool _isAvailable = false;
-    private bool _hasCheckedAvailability = false;
-
-    /// <summary>
-    /// Initialize WinRing0 driver if available
-    /// </summary>
-    private static bool InitializeWinRing0()
+    public MSRAccess(HybridMSRDriver driver)
     {
-        if (_winRing0Initialized)
-            return _winRing0Available;
+        _driver = driver ?? throw new ArgumentNullException(nameof(driver));
 
-        _winRing0Initialized = true;
-
-        try
-        {
-            // Try to initialize WinRing0
-            _winRing0Available = WinRing0_InitializeOls();
-
-            if (_winRing0Available && Log.Instance.IsTraceEnabled)
-                Log.Instance.Trace($"WinRing0 driver initialized successfully");
-            else if (Log.Instance.IsTraceEnabled)
-                Log.Instance.Trace($"WinRing0 driver not available - MSR access disabled");
-
-            return _winRing0Available;
-        }
-        catch (DllNotFoundException)
-        {
-            if (Log.Instance.IsTraceEnabled)
-                Log.Instance.Trace($"WinRing0x64.dll not found - MSR access unavailable");
-            _winRing0Available = false;
-            return false;
-        }
-        catch (Exception ex)
-        {
-            if (Log.Instance.IsTraceEnabled)
-                Log.Instance.Trace($"WinRing0 initialization failed", ex);
-            _winRing0Available = false;
-            return false;
-        }
+        // Initialize driver on construction
+        _driver.Initialize();
     }
 
     /// <summary>
@@ -101,39 +51,7 @@ public class MSRAccess
     /// </summary>
     public bool IsAvailable()
     {
-        if (_hasCheckedAvailability)
-            return _isAvailable;
-
-        _hasCheckedAvailability = true;
-
-        try
-        {
-            // Initialize WinRing0 driver
-            if (!InitializeWinRing0())
-            {
-                _isAvailable = false;
-                return false;
-            }
-
-            // Try to read MSR_PLATFORM_INFO (safe read-only register)
-            var testValue = ReadMSR(MSR_PLATFORM_INFO);
-            _isAvailable = testValue != 0;
-
-            if (_isAvailable && Log.Instance.IsTraceEnabled)
-                Log.Instance.Trace($"MSR access available - elite power control enabled");
-            else if (Log.Instance.IsTraceEnabled)
-                Log.Instance.Trace($"MSR access NOT available - driver loaded but read failed");
-
-            return _isAvailable;
-        }
-        catch (Exception ex)
-        {
-            if (Log.Instance.IsTraceEnabled)
-                Log.Instance.Trace($"MSR access check failed", ex);
-
-            _isAvailable = false;
-            return false;
-        }
+        return _driver.IsAvailable;
     }
 
     /// <summary>
@@ -142,34 +60,13 @@ public class MSRAccess
     /// </summary>
     public ulong ReadMSR(uint msr)
     {
-        if (!_winRing0Available)
+        if (!_driver.IsAvailable)
             throw new InvalidOperationException("MSR access not available - kernel driver required. See KERNEL_DRIVER_REQUIREMENTS.md");
 
-        try
-        {
-            // Read MSR using WinRing0 driver
-            if (WinRing0_Rdmsr(msr, out uint eax, out uint edx))
-            {
-                // Combine low 32 bits (EAX) and high 32 bits (EDX) into 64-bit value
-                ulong value = ((ulong)edx << 32) | eax;
+        if (!_driver.ReadMSR(msr, out ulong value))
+            throw new InvalidOperationException($"MSR read failed for register 0x{msr:X}");
 
-                if (Log.Instance.IsTraceEnabled)
-                    Log.Instance.Trace($"MSR Read: 0x{msr:X} = 0x{value:X}");
-
-                return value;
-            }
-            else
-            {
-                var error = Marshal.GetLastWin32Error();
-                throw new InvalidOperationException($"MSR read failed for register 0x{msr:X} (Error: {error})");
-            }
-        }
-        catch (Exception ex) when (ex is not InvalidOperationException)
-        {
-            if (Log.Instance.IsTraceEnabled)
-                Log.Instance.Trace($"MSR read exception for register 0x{msr:X}", ex);
-            throw new InvalidOperationException($"MSR read failed for register 0x{msr:X}", ex);
-        }
+        return value;
     }
 
     /// <summary>
@@ -178,33 +75,11 @@ public class MSRAccess
     /// </summary>
     public void WriteMSR(uint msr, ulong value)
     {
-        if (!_winRing0Available)
+        if (!_driver.IsAvailable)
             throw new InvalidOperationException("MSR access not available - kernel driver required. See KERNEL_DRIVER_REQUIREMENTS.md");
 
-        try
-        {
-            // Split 64-bit value into low 32 bits (EAX) and high 32 bits (EDX)
-            uint eax = (uint)(value & 0xFFFFFFFF);
-            uint edx = (uint)((value >> 32) & 0xFFFFFFFF);
-
-            // Write MSR using WinRing0 driver
-            if (WinRing0_Wrmsr(msr, eax, edx))
-            {
-                if (Log.Instance.IsTraceEnabled)
-                    Log.Instance.Trace($"MSR Write: 0x{msr:X} = 0x{value:X}");
-            }
-            else
-            {
-                var error = Marshal.GetLastWin32Error();
-                throw new InvalidOperationException($"MSR write failed for register 0x{msr:X} (Error: {error})");
-            }
-        }
-        catch (Exception ex) when (ex is not InvalidOperationException)
-        {
-            if (Log.Instance.IsTraceEnabled)
-                Log.Instance.Trace($"MSR write exception for register 0x{msr:X}", ex);
-            throw new InvalidOperationException($"MSR write failed for register 0x{msr:X}", ex);
-        }
+        if (!_driver.WriteMSR(msr, value))
+            throw new InvalidOperationException($"MSR write failed for register 0x{msr:X}");
     }
 
     /// <summary>

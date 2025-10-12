@@ -180,6 +180,7 @@ public class IoCModule : Module
         builder.RegisterType<System.WindowsPowerOptimizer>().SingleInstance();
 
         // Advanced components (driver-dependent, graceful degradation)
+        builder.RegisterType<System.HybridMSRDriver>().SingleInstance();
         builder.RegisterType<System.MSRAccess>().SingleInstance();
         builder.RegisterType<System.NVAPIIntegration>().SingleInstance();
         builder.RegisterType<System.HardwareAbstractionLayer>().SingleInstance();

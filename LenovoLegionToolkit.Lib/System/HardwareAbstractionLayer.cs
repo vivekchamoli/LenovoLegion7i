@@ -47,7 +47,7 @@ public class HardwareAbstractionLayer
     /// Initialize Hardware Abstraction Layer
     /// Discovers and initializes all available hardware access methods
     /// </summary>
-    public HardwareAbstractionLayer()
+    public HardwareAbstractionLayer(MSRAccess? msrAccess = null, NVAPIIntegration? nvapiIntegration = null, PCIePowerManager? pciePowerManager = null)
     {
         if (Log.Instance.IsTraceEnabled)
             Log.Instance.Trace($"HAL: Initializing Hardware Abstraction Layer");
@@ -61,17 +61,17 @@ public class HardwareAbstractionLayer
             _ecAccess = new EmbeddedControllerAccess();
             _capabilities.EcAccessAvailable = _ecAccess.Initialize();
 
-            // Initialize MSR access (CPU power/performance control)
-            _msrAccess = new MSRAccess();
-            _capabilities.MsrAccessAvailable = _msrAccess.IsAvailable();
+            // Use injected MSR access (CPU power/performance control)
+            _msrAccess = msrAccess;
+            _capabilities.MsrAccessAvailable = _msrAccess?.IsAvailable() ?? false;
 
-            // Initialize NVAPI (GPU control)
-            _nvapiIntegration = new NVAPIIntegration();
-            _capabilities.NvapiAvailable = _nvapiIntegration.IsAvailable();
+            // Use injected NVAPI (GPU control)
+            _nvapiIntegration = nvapiIntegration;
+            _capabilities.NvapiAvailable = _nvapiIntegration?.IsAvailable() ?? false;
 
-            // Initialize PCIe power management
-            _pciePowerManager = new PCIePowerManager();
-            _capabilities.PciePowerAvailable = true; // PCIe management uses Windows APIs (always available)
+            // Use injected PCIe power management
+            _pciePowerManager = pciePowerManager;
+            _capabilities.PciePowerAvailable = _pciePowerManager != null; // PCIe management uses Windows APIs (always available)
 
             // Detect hardware capabilities
             DetectHardwareCapabilities();

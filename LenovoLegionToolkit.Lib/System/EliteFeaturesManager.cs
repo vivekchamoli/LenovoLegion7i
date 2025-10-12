@@ -53,7 +53,12 @@ public class EliteFeaturesManager
     private List<string> _gamingProcesses = new();
     private List<string> _protectedProcesses = new();
 
-    public EliteFeaturesManager(BatteryStateService? batteryStateService = null)
+    public EliteFeaturesManager(
+        MSRAccess? msrAccess = null,
+        NVAPIIntegration? nvapiIntegration = null,
+        PCIePowerManager? pciePowerManager = null,
+        HardwareAbstractionLayer? hal = null,
+        BatteryStateService? batteryStateService = null)
     {
         _batteryStateService = batteryStateService;
 
@@ -61,51 +66,19 @@ public class EliteFeaturesManager
         _processPriority = new ProcessPriorityManager();
         _windowsPower = new WindowsPowerOptimizer();
 
-        // Initialize driver-dependent components (with null checks)
-        try
-        {
-            _msrAccess = new MSRAccess();
-            _msrAvailable = _msrAccess.IsAvailable();
-        }
-        catch
-        {
-            _msrAccess = null;
-            _msrAvailable = false;
-        }
+        // Use injected driver-dependent components
+        _msrAccess = msrAccess;
+        _msrAvailable = _msrAccess?.IsAvailable() ?? false;
 
-        try
-        {
-            _nvapiIntegration = new NVAPIIntegration();
-            _nvapiAvailable = _nvapiIntegration.IsAvailable();
-        }
-        catch
-        {
-            _nvapiIntegration = null;
-            _nvapiAvailable = false;
-        }
+        _nvapiIntegration = nvapiIntegration;
+        _nvapiAvailable = _nvapiIntegration?.IsAvailable() ?? false;
 
-        try
-        {
-            _pciePowerManager = new PCIePowerManager();
-            _pcieAvailable = true; // Basic functionality always available
-        }
-        catch
-        {
-            _pciePowerManager = null;
-            _pcieAvailable = false;
-        }
+        _pciePowerManager = pciePowerManager;
+        _pcieAvailable = _pciePowerManager != null;
 
-        // Initialize Hardware Abstraction Layer (kernel driver + EC access)
-        try
-        {
-            _hal = new HardwareAbstractionLayer();
-            _halAvailable = _hal.IsInitialized;
-        }
-        catch
-        {
-            _hal = null;
-            _halAvailable = false;
-        }
+        // Use injected Hardware Abstraction Layer
+        _hal = hal;
+        _halAvailable = _hal?.IsInitialized ?? false;
 
         // Initialize process lists
         InitializeProcessLists();

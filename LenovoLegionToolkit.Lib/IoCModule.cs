@@ -153,6 +153,14 @@ public class IoCModule : Module
         builder.RegisterType<AI.CoolingPeriodManager>().SingleInstance();
         builder.RegisterType<AI.DecisionArbitrationEngine>().SingleInstance();
 
+        // Autonomous learning and telemetry (v7.0.6+)
+        builder.RegisterType<AI.CognitiveMemoryLayer>().SingleInstance();
+        builder.RegisterType<AI.PerformanceTelemetryAgent>().SingleInstance();
+
+        // Predictive optimization (v7.1.0 preview)
+        builder.RegisterType<AI.WorkloadPredictor>().SingleInstance();
+        // Note: OptimizedContextGatherer disabled pending SystemContext API updates
+
         // Multi-agent system (register with interface for array injection)
         builder.RegisterType<AI.ThermalAgent>().As<AI.IOptimizationAgent>().SingleInstance();
         builder.RegisterType<AI.PowerAgent>().As<AI.IOptimizationAgent>().SingleInstance();

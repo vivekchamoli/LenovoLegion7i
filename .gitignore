@@ -634,3 +634,8 @@ htmlcov/
 .idea/
 *.md
 .claude/
+.context/
+.contextagents/
+.contextcheckpoints/
+.contextcode_state/
+.contextsessions/

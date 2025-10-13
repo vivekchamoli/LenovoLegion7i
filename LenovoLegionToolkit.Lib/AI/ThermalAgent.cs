@@ -135,7 +135,11 @@ public class ThermalAgent : IOptimizationAgent
         // VRM temperature management (often overlooked but critical)
         // VRM temps above 90°C can cause system instability and damage
         // Gen 9 VRM safe limit is 95°C, we act at 85°C for safety margin
-        if (context.ThermalState.VrmTemp > 85)
+        // FIX #5: Add VRM temperature sanity check (EC register 0xE5 sometimes returns invalid values)
+        var vrmTempValid = context.ThermalState.VrmTemp >= context.ThermalState.CpuTemp &&
+                           context.ThermalState.VrmTemp <= context.ThermalState.CpuTemp + 30;
+
+        if (context.ThermalState.VrmTemp > 85 && vrmTempValid)
         {
             if (context.ThermalState.VrmTemp > 90)
             {
@@ -177,6 +181,12 @@ public class ThermalAgent : IOptimizationAgent
                 Value = Math.Min(255, context.ThermalState.Fan1Speed + 40), // Increase by ~15%
                 Reason = $"Cooling VRM: {context.ThermalState.VrmTemp}°C"
             });
+        }
+        else if (context.ThermalState.VrmTemp > 85 && !vrmTempValid && Log.Instance.IsTraceEnabled)
+        {
+            // FIX #5: Log invalid VRM sensor reading for diagnostics
+            // Prevents false throttling when EC register returns garbage (e.g., 144°C when CPU is 43°C)
+            Log.Instance.Trace($"VRM sensor invalid: {context.ThermalState.VrmTemp}°C (CPU: {context.ThermalState.CpuTemp}°C) - ignoring");
         }
 
         // ADAPTIVE FAN CURVE LEARNING (if enabled)

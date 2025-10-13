@@ -71,10 +71,18 @@ public class SafetyValidator
         {
             "CPU_PL1" => ValidateCPUPL1(action, context),
             "CPU_PL2" => ValidateCPUPL2(action, context),
+            "CPU_PL4" => ValidationResult.Allow(), // FIX #6: PL4 is short-term boost limit, hardware enforced
             "GPU_TGP" => ValidateGPUTGP(action, context),
             "GPU_OVERCLOCK" => ValidateGPUOverclock(action, context),
+            "GPU_HYBRID_MODE" => ValidationResult.Allow(), // FIX #6: Hybrid mode switching is safe
             "FAN_PROFILE" => ValidateFanProfile(action, context),
+            "FAN_SPEED_CPU" => ValidateFanSpeed(action, context), // FIX #1
+            "FAN_SPEED_GPU" => ValidateFanSpeed(action, context), // FIX #1
+            "FAN_CURVE_APPLY" => ValidationResult.Allow(), // FIX #1: Fan curve changes are safe
+            "FAN_FULL_SPEED" => ValidationResult.Allow(), // FIX #1: Emergency full speed is safe
+            "VAPOR_CHAMBER_MODE" => ValidationResult.Allow(), // FIX #1: Vapor chamber control is safe
             "POWER_MODE" => ValidatePowerMode(action, context),
+            "ELITE_PROFILE" => ValidationResult.Allow(), // FIX #6: Elite profiles are pre-validated
             "GPU_MODE" => ValidateGPUMode(action, context),
             "DISPLAY_BRIGHTNESS" => ValidateDisplayBrightness(action, context),
             "DISPLAY_REFRESH_RATE" => ValidateDisplayRefreshRate(action, context),
@@ -161,6 +169,20 @@ public class SafetyValidator
     private ValidationResult ValidateFanProfile(ResourceAction action, SystemContext context)
     {
         // Fan control is always safe - hardware has its own safety limits
+        return ValidationResult.Allow();
+    }
+
+    // FIX #1: Validate fan speed value is within EC byte range (0-255)
+    private ValidationResult ValidateFanSpeed(ResourceAction action, SystemContext context)
+    {
+        // Validate fan speed value is within 0-255 range (EC byte value)
+        if (action.Value is int fanSpeed)
+        {
+            if (fanSpeed < 0 || fanSpeed > 255)
+                return ValidationResult.Reject($"Fan speed {fanSpeed} out of range (0-255)");
+        }
+
+        // Fan speed control is always safe - hardware EC has thermal limits
         return ValidationResult.Allow();
     }
 

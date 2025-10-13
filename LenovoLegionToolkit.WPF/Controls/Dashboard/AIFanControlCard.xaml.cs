@@ -276,9 +276,13 @@ public partial class AIFanControlCard
             // Apply fan profile
             await _thermalOptimizer.ApplyFanProfileAsync(profile);
 
+            // FIX #3: Clear previous override (allow user to switch between profiles)
             // FIX #1: Register user override for 30 minutes to prevent AI from overriding
             if (_overrideManager != null)
             {
+                // Clear previous override before setting new one (fixes profile switching)
+                _overrideManager.ClearOverride("FAN_PROFILE");
+
                 _overrideManager.SetOverride(
                     control: "FAN_PROFILE",
                     value: profile,
@@ -286,6 +290,16 @@ public partial class AIFanControlCard
                 );
 
                 _userHasManualControl = true;
+
+                // FIX #4: Also lock POWER_MODE to prevent PowerAgent conflicts
+                // Ensures fan profile and power mode stay synchronized
+                var matchingPowerMode = GetMatchingPowerMode(profile);
+                _overrideManager.ClearOverride("POWER_MODE");
+                _overrideManager.SetOverride(
+                    control: "POWER_MODE",
+                    value: matchingPowerMode,
+                    duration: TimeSpan.FromMinutes(30)
+                );
 
                 if (Log.Instance.IsTraceEnabled)
                     Log.Instance.Trace($"User override registered: FAN_PROFILE = {profile} for 30 minutes");
@@ -400,5 +414,20 @@ public partial class AIFanControlCard
             _currentProfile = newProfile.Value;
 
         Dispatcher.InvokeAsync(UpdateDisplayAsync);
+    }
+
+    /// <summary>
+    /// FIX #4: Map fan profiles to matching power modes for cross-control override
+    /// </summary>
+    private PowerModeState GetMatchingPowerMode(FanProfile fanProfile)
+    {
+        return fanProfile switch
+        {
+            FanProfile.Quiet => PowerModeState.Quiet,              // 35W/55W
+            FanProfile.Balanced => PowerModeState.Balance,          // 55W/115W
+            FanProfile.MaxPerformance => PowerModeState.Performance, // 80W/140W
+            FanProfile.Aggressive => PowerModeState.Performance,     // 80W/140W
+            _ => PowerModeState.Balance
+        };
     }
 }

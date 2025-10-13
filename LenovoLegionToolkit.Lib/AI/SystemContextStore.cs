@@ -479,6 +479,16 @@ public class SystemContextStore
             if (Log.Instance.IsTraceEnabled)
                 Log.Instance.Trace($"Failed to gather battery state", ex);
 
+            // BATTERY FIX #2: Use cached state on error instead of defaulting to 100%
+            // Prevents flickering when battery API temporarily fails
+            if (_lastContext?.BatteryState != null)
+            {
+                if (Log.Instance.IsTraceEnabled)
+                    Log.Instance.Trace($"Using cached battery state: {_lastContext.BatteryState.ChargePercent}%");
+                return _lastContext.BatteryState;
+            }
+
+            // Final fallback if no cached state exists
             return new BatteryState
             {
                 IsOnBattery = false,

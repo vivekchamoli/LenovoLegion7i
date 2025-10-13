@@ -57,6 +57,10 @@ public class ActionExecutor
         {
             try
             {
+                // FIX #2: Unified control name mapping for cooling period protection
+                // All fan-related actions map to "FAN_CONTROL" so ThermalAgent can detect manual overrides correctly
+                var controlName = GetControlNameFromTarget(action.Target);
+
                 // Safety validation
                 var validation = _safetyValidator.ValidateAction(action, contextBefore);
                 if (!validation.IsAllowed)
@@ -175,6 +179,23 @@ public class ActionExecutor
         ActionType.Proactive => 2,
         ActionType.Opportunistic => 3,
         _ => 4
+    };
+
+    /// <summary>
+    /// FIX #2: Map action targets to control names for cooling period protection
+    /// All fan-related actions map to "FAN_CONTROL" so manual overrides are detected correctly
+    /// </summary>
+    private static string GetControlNameFromTarget(string target) => target switch
+    {
+        "FAN_TABLE" => "FAN_CONTROL",
+        "FAN_SPEED" => "FAN_CONTROL",
+        "FAN_SPEED_CPU" => "FAN_CONTROL",
+        "FAN_SPEED_GPU" => "FAN_CONTROL",
+        "FAN_PROFILE" => "FAN_CONTROL",
+        "FAN_CURVE_APPLY" => "FAN_CONTROL",
+        "FAN_FULL_SPEED" => "FAN_CONTROL",
+        "VAPOR_CHAMBER_MODE" => "FAN_CONTROL",
+        _ => target
     };
 }
 

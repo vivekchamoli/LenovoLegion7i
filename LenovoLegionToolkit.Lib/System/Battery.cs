@@ -71,8 +71,31 @@ public static class Battery
                 Log.Instance.Trace($"Failed to get temperature of battery.", ex);
         }
 
+        // BATTERY FIX #1: Validate BatteryLifePercent (255 = unknown state)
+        // Windows GetSystemPowerStatus() returns 255 when battery state is unknown
+        // Calculate from capacity instead to prevent flickering between actual % and 100%
+        byte batteryPercent = powerStatus.BatteryLifePercent;
+        if (batteryPercent == 255 || batteryPercent > 100)
+        {
+            // Calculate percentage from capacity (more accurate than Windows API)
+            if (information.FullChargedCapacity > 0)
+            {
+                batteryPercent = (byte)Math.Clamp(
+                    (status.Capacity * 100) / information.FullChargedCapacity,
+                    0, 100);
+
+                if (Log.Instance.IsTraceEnabled)
+                    Log.Instance.Trace($"Battery API returned invalid percentage ({powerStatus.BatteryLifePercent}), calculated from capacity: {batteryPercent}%");
+            }
+            else
+            {
+                // Fallback to 100% if we can't calculate (better than showing 255%)
+                batteryPercent = 100;
+            }
+        }
+
         return new(powerStatus.ACLineStatus == 1,
-            powerStatus.BatteryLifePercent,
+            batteryPercent,
             (int)powerStatus.BatteryLifeTime,
             (int)powerStatus.BatteryFullLifeTime,
             status.Rate,

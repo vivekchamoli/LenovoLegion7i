@@ -326,9 +326,19 @@ public class PowerModeHandler : IActionHandler
         if (action.Value is not PowerModeState mode)
             return;
 
+        // FIX #8: Check if mode is already active (idempotency)
+        // Avoids expensive ACPI/WMI calls when mode is already set
+        var currentMode = await _powerModeFeature.GetStateAsync().ConfigureAwait(false);
+        if (currentMode == mode)
+        {
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Power mode already {mode} - skipping expensive ACPI call");
+            return; // Already at target - skip
+        }
+
         // Store previous mode
         if (_previousMode == null)
-            _previousMode = await _powerModeFeature.GetStateAsync().ConfigureAwait(false);
+            _previousMode = currentMode;
 
         await _powerModeFeature.SetStateAsync(mode).ConfigureAwait(false);
 
@@ -479,9 +489,19 @@ public class DisplayControlHandler : IActionHandler
             case "DISPLAY_REFRESH_RATE":
                 if (action.Value is RefreshRate refreshRate)
                 {
-                    // Store previous value
+                    // FIX #10: Check if refresh rate is already set (idempotency)
+                    // Avoids expensive Windows CCD display mode changes when refresh rate is already correct
+                    var currentRefreshRate = await _refreshRateFeature.GetStateAsync().ConfigureAwait(false);
+                    if (currentRefreshRate.Frequency == refreshRate.Frequency)
+                    {
+                        if (Log.Instance.IsTraceEnabled)
+                            Log.Instance.Trace($"Refresh rate already {refreshRate.Frequency}Hz - skipping expensive Windows CCD call");
+                        return; // Already at target - skip
+                    }
+
+                    // Store previous value for rollback
                     if (!_previousValues.ContainsKey(action.Target))
-                        _previousValues[action.Target] = await _refreshRateFeature.GetStateAsync().ConfigureAwait(false);
+                        _previousValues[action.Target] = currentRefreshRate;
 
                     await _refreshRateFeature.SetStateAsync(refreshRate).ConfigureAwait(false);
 
@@ -654,11 +674,20 @@ public class EliteProfileHandler : IActionHandler
             return;
         }
 
+        // FIX #9: Check if profile is already active (idempotency)
+        // Avoids expensive MSR/NVAPI/PCIe/Process/Windows operations when profile is already set
+        var currentStatus = manager.GetCurrentProfileStatus();
+        if (currentStatus.ActiveProfile == profile)
+        {
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Elite profile already {profile} - skipping expensive MSR/NVAPI operations");
+            return; // Already at target - skip
+        }
+
         // Store previous profile for rollback
         if (_previousProfile == null)
         {
-            var status = manager.GetCurrentProfileStatus();
-            _previousProfile = status.ActiveProfile;
+            _previousProfile = currentStatus.ActiveProfile;
         }
 
         // Apply the elite profile with power-source awareness

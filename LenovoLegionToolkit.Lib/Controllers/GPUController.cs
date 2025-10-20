@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using LenovoLegionToolkit.Lib.Extensions;
+using LenovoLegionToolkit.Lib.Features.Hybrid;
 using LenovoLegionToolkit.Lib.Resources;
 using LenovoLegionToolkit.Lib.System;
 using LenovoLegionToolkit.Lib.System.Management;
@@ -12,7 +13,7 @@ using NeoSmart.AsyncLock;
 
 namespace LenovoLegionToolkit.Lib.Controllers;
 
-public class GPUController
+public class GPUController : IDisposable
 {
     private readonly AsyncLock _lock = new();
 
@@ -25,19 +26,62 @@ public class GPUController
     private string? _performanceState;
     private string? _deviceName;
 
+    // CRITICAL FIX v6.20.20: Cache NVAPI availability to prevent 1,700+ polling storm
+    // System was checking IsSupported() every call, causing repeated NVAPI initialization attempts
+    // Cache result for 60 seconds - only re-check on Hybrid Mode state changes
+    private static bool? _nvapiSupportedCache = null;
+    private static DateTime _nvapiCacheExpiry = DateTime.MinValue;
+    private static readonly TimeSpan NVAPI_CACHE_DURATION = TimeSpan.FromSeconds(60);
+
     public event EventHandler<GPUStatus>? Refreshed;
     public bool IsStarted { get => _refreshTask != null; }
 
     public bool IsSupported()
     {
+        // CRITICAL FIX v6.20.20: Check cache first to prevent 1,700+ NVAPI initialization attempts
+        // Cache valid for 60 seconds - dramatically reduces CPU wake-ups and power consumption
+        var now = DateTime.UtcNow;
+        if (_nvapiSupportedCache.HasValue && now < _nvapiCacheExpiry)
+        {
+            return _nvapiSupportedCache.Value;
+        }
+
+        // Cache miss or expired - perform actual check
+        bool result;
         try
         {
             NVAPI.Initialize();
-            return NVAPI.GetGPU() is not null;
+            var gpuDetected = NVAPI.GetGPU() is not null;
+
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"GPU hardware detection: {(gpuDetected ? "NVIDIA GPU found" : "No NVIDIA GPU")} [cache refreshed]");
+
+            result = gpuDetected;
         }
-        catch
+        catch (Exception ex)
         {
-            return false;
+            // CRITICAL FIX v6.20.17: Check if this is a powered-off GPU (still supported) vs no GPU hardware
+            // NVAPI_NVIDIA_DEVICE_NOT_FOUND can mean:
+            // 1. dGPU is powered off (hybrid mode) - SHOULD show control with "Powered Off" status
+            // 2. No NVIDIA hardware at all - SHOULD hide control
+
+            // If HybridModeFeature is available, system has dGPU hardware (even if powered off)
+            var hasHybridMode = false;
+            try
+            {
+                var hybridModeFeature = IoCContainer.TryResolve<HybridModeFeature>();
+                hasHybridMode = hybridModeFeature is not null;
+            }
+            catch
+            {
+                hasHybridMode = false;
+            }
+
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"NVAPI unavailable - HybridMode available: {hasHybridMode}, Error: {ex.Message} [cache refreshed]");
+
+            // If hybrid mode is available, system has dGPU (just powered off)
+            result = hasHybridMode;
         }
         finally
         {
@@ -47,6 +91,25 @@ public class GPUController
             }
             catch { /* Ignored. */ }
         }
+
+        // Update cache
+        _nvapiSupportedCache = result;
+        _nvapiCacheExpiry = now.Add(NVAPI_CACHE_DURATION);
+
+        return result;
+    }
+
+    /// <summary>
+    /// CRITICAL FIX v6.20.20: Invalidate NVAPI cache when Hybrid Mode state changes
+    /// Call this method after GPU mode transitions to force re-detection
+    /// </summary>
+    public static void InvalidateNVAPICache()
+    {
+        _nvapiSupportedCache = null;
+        _nvapiCacheExpiry = DateTime.MinValue;
+
+        if (Log.Instance.IsTraceEnabled)
+            Log.Instance.Trace($"NVAPI cache invalidated - will re-check on next IsSupported() call");
     }
 
     public async Task<GPUState> GetLastKnownStateAsync()
@@ -170,10 +233,52 @@ public class GPUController
             if (Log.Instance.IsTraceEnabled)
                 Log.Instance.Trace($"Initializing NVAPI...");
 
-            NVAPI.Initialize();
+            try
+            {
+                NVAPI.Initialize();
 
-            if (Log.Instance.IsTraceEnabled)
-                Log.Instance.Trace($"Initialized NVAPI");
+                if (Log.Instance.IsTraceEnabled)
+                    Log.Instance.Trace($"Initialized NVAPI");
+            }
+            catch (Exception)
+            {
+                // CRITICAL FIX v6.20.17: Graceful degradation when NVAPI unavailable (iGPU mode, driver issues)
+                // Check if system has dGPU (hybrid mode) to distinguish powered-off vs not present
+                var hasHybridMode = false;
+                try
+                {
+                    var hybridModeFeature = IoCContainer.TryResolve<HybridModeFeature>();
+                    hasHybridMode = hybridModeFeature is not null;
+                }
+                catch
+                {
+                    hasHybridMode = false;
+                }
+
+                if (hasHybridMode)
+                {
+                    // System has dGPU hardware - it's just powered off (iGPU-only mode)
+                    _state = GPUState.PoweredOff;
+                    _performanceState = Resource.GPUController_PoweredOff;
+
+                    // CRITICAL FIX v6.22.1: Don't log NVAPI exception in iGPU mode - it's expected behavior
+                    // Logging exception causes 200+ "=== Exception ===" lines in log (log pollution)
+                    if (Log.Instance.IsTraceEnabled)
+                        Log.Instance.Trace($"NVAPI initialization failed - dGPU powered off (iGPU-only mode)");
+                }
+                else
+                {
+                    // No NVIDIA GPU hardware detected
+                    _state = GPUState.NvidiaGpuNotFound;
+
+                    // CRITICAL FIX v6.22.1: Don't log NVAPI exception when no GPU - it's expected behavior
+                    if (Log.Instance.IsTraceEnabled)
+                        Log.Instance.Trace($"NVAPI initialization failed - No NVIDIA GPU detected");
+                }
+
+                Refreshed?.Invoke(this, new GPUStatus(_state, _performanceState, _processes, _deviceName));
+                return; // Exit gracefully without throwing
+            }
 
             await Task.Delay(delay, token).ConfigureAwait(false);
 
@@ -206,17 +311,48 @@ public class GPUController
             if (Log.Instance.IsTraceEnabled)
                 Log.Instance.Trace($"Exception occurred", ex);
 
-            throw;
+            // CRITICAL FIX v6.20.17: Don't throw - distinguish powered-off vs not present
+            var hasHybridMode = false;
+            try
+            {
+                var hybridModeFeature = IoCContainer.TryResolve<HybridModeFeature>();
+                hasHybridMode = hybridModeFeature is not null;
+            }
+            catch
+            {
+                hasHybridMode = false;
+            }
+
+            if (hasHybridMode)
+            {
+                _state = GPUState.PoweredOff;
+                _performanceState = Resource.GPUController_PoweredOff;
+            }
+            else
+            {
+                _state = GPUState.NvidiaGpuNotFound;
+            }
+
+            Refreshed?.Invoke(this, new GPUStatus(_state, _performanceState, _processes, _deviceName));
         }
         finally
         {
             if (Log.Instance.IsTraceEnabled)
                 Log.Instance.Trace($"Unloading NVAPI...");
 
-            NVAPI.Unload();
+            try
+            {
+                NVAPI.Unload();
 
-            if (Log.Instance.IsTraceEnabled)
-                Log.Instance.Trace($"Unloaded NVAPI");
+                if (Log.Instance.IsTraceEnabled)
+                    Log.Instance.Trace($"Unloaded NVAPI");
+            }
+            catch (Exception ex)
+            {
+                // Ignore unload errors
+                if (Log.Instance.IsTraceEnabled)
+                    Log.Instance.Trace($"NVAPI unload error (ignored)", ex);
+            }
         }
     }
 
@@ -310,5 +446,40 @@ public class GPUController
             if (Log.Instance.IsTraceEnabled)
                 Log.Instance.Trace($"Inactive [state={_state}, processes.Count={_processes.Count}, gpuInstanceId={_gpuInstanceId}]");
         }
+    }
+
+    // ELITE FIX v6.20.18: Proper disposal to prevent memory leaks
+    public void Dispose()
+    {
+        try
+        {
+            // Stop refresh task
+            if (_refreshCancellationTokenSource != null)
+            {
+                _refreshCancellationTokenSource.Cancel();
+                _refreshCancellationTokenSource.Dispose();
+                _refreshCancellationTokenSource = null;
+            }
+
+            // Wait for refresh task with timeout
+            if (_refreshTask != null && !_refreshTask.IsCompleted)
+            {
+                var waitTask = _refreshTask.ContinueWith(_ => { }, TaskScheduler.Default);
+                var completed = waitTask.Wait(TimeSpan.FromSeconds(2));
+
+                if (!completed && Log.Instance.IsTraceEnabled)
+                    Log.Instance.Trace($"GPUController: Refresh task did not complete within timeout");
+            }
+
+            _refreshTask = null;
+        }
+        catch (Exception ex)
+        {
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"GPUController: Disposal error", ex);
+        }
+
+        // CRITICAL: Clear event handlers to prevent memory leaks
+        Refreshed = null;
     }
 }

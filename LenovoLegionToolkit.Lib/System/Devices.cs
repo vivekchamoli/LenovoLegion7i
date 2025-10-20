@@ -18,9 +18,13 @@ public static class Devices
 {
     private static readonly object Lock = new();
 
-    private static SafeFileHandle? _battery;
+    // ELITE FIX V3: Reference-counted battery handle to prevent ObjectDisposedException race conditions
+    private static SafeBatteryHandle? _batteryHandleWrapper;
     private static SafeFileHandle? _rgbKeyboard;
     private static SafeFileHandle? _spectrumRgbKeyboard;
+
+    // ELITE FIX: Track battery handle creation time for invalidation detection
+    private static DateTime _batteryHandleCreatedAt = DateTime.MinValue;
 
     #region All devices
 
@@ -149,15 +153,59 @@ public static class Devices
 
     #region Battery
 
+    /// <summary>
+    /// Get battery device handle with automatic invalidation detection
+    /// ELITE FIX V3: Reference-counted handle prevents ObjectDisposedException during concurrent access
+    /// CRITICAL FIX v6.20.20: Increased from 30s to 300s (5 min) to prevent excessive handle churn
+    /// Excessive recreations were causing high power drain from ACPI firmware wake-ups
+    /// </summary>
     public static unsafe SafeFileHandle GetBattery(bool forceRefresh = false)
     {
-        if (_battery is not null && !forceRefresh)
-            return _battery;
+        // CRITICAL FIX v6.20.20: Increased from 30s to 300s (5 minutes)
+        // 30s was too aggressive - causing dozens of handle recreations per session
+        // Handle is properly invalidated on GPU transitions and Modern Standby events (InvalidateBatteryHandle)
+        // Automatic refresh should only catch edge cases, not be the primary mechanism
+        var handleAge = DateTime.Now - _batteryHandleCreatedAt;
+        if (_batteryHandleWrapper is not null && !forceRefresh && handleAge.TotalSeconds < 300)
+        {
+            var handle = _batteryHandleWrapper.AcquireReference();
+            if (handle is not null)
+                return handle;
+            // Handle was invalidated between check and acquire - fall through to recreate
+        }
 
         lock (Lock)
         {
-            if (_battery is not null && !forceRefresh)
-                return _battery;
+            // Re-check inside lock (300s threshold for consistency)
+            handleAge = DateTime.Now - _batteryHandleCreatedAt;
+            if (_batteryHandleWrapper is not null && !forceRefresh && handleAge.TotalSeconds < 300)
+            {
+                var handle = _batteryHandleWrapper.AcquireReference();
+                if (handle is not null)
+                    return handle;
+                // Handle was invalidated - fall through to recreate
+            }
+
+            // ELITE FIX V3: Invalidate old wrapper (waits for references to release)
+            if (_batteryHandleWrapper is not null)
+            {
+                try
+                {
+                    _batteryHandleWrapper.Invalidate();
+
+                    if (Log.Instance.IsTraceEnabled)
+                        Log.Instance.Trace($"Battery handle invalidation initiated (waiting for {_batteryHandleWrapper.ReferenceCount} references)");
+
+                    // Wait briefly for active references to complete (non-blocking for callers)
+                    _batteryHandleWrapper.WaitForAllReferencesReleased(timeoutMs: 500);
+                }
+                catch (Exception ex)
+                {
+                    if (Log.Instance.IsTraceEnabled)
+                        Log.Instance.Trace($"Failed to invalidate old battery handle wrapper", ex);
+                }
+                _batteryHandleWrapper = null;
+            }
 
             var devClassBatteryGuid = PInvoke.GUID_DEVCLASS_BATTERY;
             using var deviceHandle = PInvoke.SetupDiGetClassDevs(devClassBatteryGuid,
@@ -209,10 +257,85 @@ public static class Devices
             if (fileHandle.IsInvalid)
                 PInvokeExtensions.ThrowIfWin32Error("CreateFile");
 
-            _battery = fileHandle;
-        }
+            // CRITICAL FIX v6.20.14: Verify handle is valid before wrapping
+            // Check both IsInvalid and IsClosed to catch edge cases
+            if (fileHandle.IsClosed)
+            {
+                if (Log.Instance.IsTraceEnabled)
+                    Log.Instance.Trace($"⚠️ Battery handle is already closed after CreateFile - retrying");
+                throw new InvalidOperationException("Battery handle closed immediately after creation");
+            }
 
-        return _battery;
+            // CRITICAL FIX v6.20.15: Create wrapper with reference count = 0, then acquire for caller
+            // This prevents race condition where handle could be invalidated between constructor and AcquireReference()
+            _batteryHandleWrapper = new SafeBatteryHandle(fileHandle);
+            _batteryHandleCreatedAt = DateTime.Now;
+
+            if (Log.Instance.IsTraceEnabled)
+                Log.Instance.Trace($"Battery handle created/refreshed at {_batteryHandleCreatedAt}");
+
+            // CRITICAL FIX v6.20.15: AcquireReference() now increments from 0→1 atomically
+            // This guarantees the caller gets a valid reference or exception (no null return possible)
+            var newHandle = _batteryHandleWrapper.AcquireReference();
+            if (newHandle is null)
+            {
+                // Should never happen with new implementation, but keep defensive check
+                var isDisposed = !_batteryHandleWrapper.IsValid;
+                var refCount = _batteryHandleWrapper.ReferenceCount;
+                if (Log.Instance.IsTraceEnabled)
+                    Log.Instance.Trace($"⚠️ UNEXPECTED: Failed to acquire battery handle reference - IsValid={!isDisposed}, RefCount={refCount}");
+
+                _batteryHandleWrapper = null;
+                throw new InvalidOperationException($"Failed to acquire reference to newly created battery handle (IsValid={!isDisposed}, RefCount={refCount})");
+            }
+
+            return newHandle;
+        }
+    }
+
+    /// <summary>
+    /// Release a battery handle reference after use
+    /// ELITE FIX V3: Must be called after using handle from GetBattery() to prevent handle leaks
+    /// </summary>
+    public static void ReleaseBatteryReference()
+    {
+        _batteryHandleWrapper?.ReleaseReference();
+    }
+
+    /// <summary>
+    /// ELITE FIX V3: Invalidate battery handle (called during GPU transitions)
+    /// Waits for active references to complete before disposal (prevents ObjectDisposedException)
+    /// </summary>
+    public static void InvalidateBatteryHandle()
+    {
+        lock (Lock)
+        {
+            if (_batteryHandleWrapper is not null)
+            {
+                try
+                {
+                    var refCount = _batteryHandleWrapper.ReferenceCount;
+                    _batteryHandleWrapper.Invalidate();
+
+                    if (Log.Instance.IsTraceEnabled)
+                        Log.Instance.Trace($"Battery handle invalidated (GPU transition or power state change) - waiting for {refCount} references");
+
+                    // Wait for all active references to be released (max 5 seconds)
+                    // This prevents ObjectDisposedException during concurrent battery access
+                    var released = _batteryHandleWrapper.WaitForAllReferencesReleased(timeoutMs: 5000);
+
+                    if (!released && Log.Instance.IsTraceEnabled)
+                        Log.Instance.Trace($"⚠️ WARNING: Battery handle invalidation timeout - {_batteryHandleWrapper.ReferenceCount} references still active");
+                }
+                catch (Exception ex)
+                {
+                    if (Log.Instance.IsTraceEnabled)
+                        Log.Instance.Trace($"Failed to invalidate battery handle wrapper", ex);
+                }
+                _batteryHandleWrapper = null;
+                _batteryHandleCreatedAt = DateTime.MinValue;
+            }
+        }
     }
 
     #endregion

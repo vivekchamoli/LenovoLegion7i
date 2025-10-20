@@ -632,4 +632,12 @@ htmlcov/
 # IDE and editor directories
 .vscode/
 .idea/
+
+# Ignore all .md files except README.md
 *.md
+!README.md
+
+# Ignore all .bat files except build_gen9_enhanced.bat and clean.bat
+*.bat
+!build_gen9_enhanced.bat
+!clean.bat

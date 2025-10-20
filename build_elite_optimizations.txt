@@ -1,0 +1,15 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+C:\Users\Legion7\Desktop\All builds\LenovoLegion7iToolkit\LenovoLegionToolkit.Lib\AI\ActionHandlers.cs(1309,46): error CS0234: The type or namespace name 'Reflection' does not exist in the namespace 'LenovoLegionToolkit.Lib.System' (are you missing an assembly reference?) [C:\Users\Legion7\Desktop\All builds\LenovoLegion7iToolkit\LenovoLegionToolkit.Lib\LenovoLegionToolkit.Lib.csproj]
+C:\Users\Legion7\Desktop\All builds\LenovoLegion7iToolkit\LenovoLegionToolkit.Lib\AI\ActionHandlers.cs(1309,89): error CS0234: The type or namespace name 'Reflection' does not exist in the namespace 'LenovoLegionToolkit.Lib.System' (are you missing an assembly reference?) [C:\Users\Legion7\Desktop\All builds\LenovoLegion7iToolkit\LenovoLegionToolkit.Lib\LenovoLegionToolkit.Lib.csproj]
+C:\Users\Legion7\Desktop\All builds\LenovoLegion7iToolkit\LenovoLegionToolkit.Lib\AI\ActionHandlers.cs(1310,50): error CS0234: The type or namespace name 'Collections' does not exist in the namespace 'LenovoLegionToolkit.Lib.System' (are you missing an assembly reference?) [C:\Users\Legion7\Desktop\All builds\LenovoLegion7iToolkit\LenovoLegionToolkit.Lib\LenovoLegionToolkit.Lib.csproj]
+
+Build FAILED.
+
+C:\Users\Legion7\Desktop\All builds\LenovoLegion7iToolkit\LenovoLegionToolkit.Lib\AI\ActionHandlers.cs(1309,46): error CS0234: The type or namespace name 'Reflection' does not exist in the namespace 'LenovoLegionToolkit.Lib.System' (are you missing an assembly reference?) [C:\Users\Legion7\Desktop\All builds\LenovoLegion7iToolkit\LenovoLegionToolkit.Lib\LenovoLegionToolkit.Lib.csproj]
+C:\Users\Legion7\Desktop\All builds\LenovoLegion7iToolkit\LenovoLegionToolkit.Lib\AI\ActionHandlers.cs(1309,89): error CS0234: The type or namespace name 'Reflection' does not exist in the namespace 'LenovoLegionToolkit.Lib.System' (are you missing an assembly reference?) [C:\Users\Legion7\Desktop\All builds\LenovoLegion7iToolkit\LenovoLegionToolkit.Lib\LenovoLegionToolkit.Lib.csproj]
+C:\Users\Legion7\Desktop\All builds\LenovoLegion7iToolkit\LenovoLegionToolkit.Lib\AI\ActionHandlers.cs(1310,50): error CS0234: The type or namespace name 'Collections' does not exist in the namespace 'LenovoLegionToolkit.Lib.System' (are you missing an assembly reference?) [C:\Users\Legion7\Desktop\All builds\LenovoLegion7iToolkit\LenovoLegionToolkit.Lib\LenovoLegionToolkit.Lib.csproj]
+    0 Warning(s)
+    3 Error(s)
+
+Time Elapsed 00:00:19.74

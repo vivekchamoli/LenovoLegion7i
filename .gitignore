@@ -641,3 +641,9 @@ htmlcov/
 *.bat
 !build_gen9_enhanced.bat
 !clean.bat
+
+# Ignore build output and deployment files
+build_elite_optimizations.txt
+build_output.txt
+check_phases.ps1
+deploy-elite-optimizations.ps1
